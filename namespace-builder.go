@@ -27,9 +27,14 @@ type Namespaces struct {
 	errProcessing func(error)
 }
 
-// get получение пространства имён для данного файла
+// Get получение пространства имён для данного файла
 func (s *Namespaces) Get(importPath string) (Namespace, error) {
 	return s.get(importPath)
+}
+
+// Proto получение готового к обходу представления файла предоставляемого библиотекой gitub.com/emicklei/proto
+func (s *Namespaces) Proto(importPath string) (*proto.Proto, error) {
+	return s.files.File(importPath)
 }
 
 func (s *Namespaces) get(importPath string) (namespace.Namespace, error) {
