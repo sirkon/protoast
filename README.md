@@ -5,7 +5,7 @@ A library to represent protobuf types definitions shaped into ASTes.
 
 ```go
 mapping := map[string]string{
-	"file.proto": "/var/lib/protofiles/file.proto"
+	"file.proto": "/var/lib/protofiles/file.proto",
 }
 ns := prototypes.NewNamespaces(mapping, func(err error) {
 	log.Println(err)
