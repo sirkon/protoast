@@ -62,22 +62,22 @@ func (tv *typesVisitor) VisitOption(o *proto.Option)   {}
 func (tv *typesVisitor) VisitImport(i *proto.Import) {
 	importNs, err := tv.nss.get(i.Filename)
 	if err != nil {
-		tv.errors <- ErrPosf(i.Position, "reading import %s: %s", i.Filename, err)
+		tv.errors <- errPosf(i.Position, "reading import %s: %s", i.Filename, err)
 		return
 	}
 
 	tv.ns, err = tv.ns.WithImport(importNs)
 	if err != nil {
-		tv.errors <- ErrPos(i.Position, err)
+		tv.errors <- errPos(i.Position, err)
 	}
 }
 
 func (tv *typesVisitor) VisitNormalField(i *proto.NormalField) {
 	if prev, ok := tv.msgCtx.prevField[i.Name]; ok {
-		tv.errors <- ErrPosf(i.Position, "duplicate field %s, the previous definition was in %s", i.Name, prev)
+		tv.errors <- errPosf(i.Position, "duplicate field %s, the previous definition was in %s", i.Name, prev)
 	}
 	if prev, ok := tv.msgCtx.prevInteger[i.Sequence]; ok {
-		tv.errors <- ErrPosf(i.Position, "duplicate field sequence %d, the previous valuy was in %s", i.Sequence, prev)
+		tv.errors <- errPosf(i.Position, "duplicate field sequence %d, the previous valuy was in %s", i.Sequence, prev)
 	}
 	tv.msgCtx.prevField[i.Name] = i.Position
 	tv.msgCtx.prevInteger[i.Sequence] = i.Position
@@ -95,7 +95,7 @@ func (tv *typesVisitor) VisitNormalField(i *proto.NormalField) {
 		t = tv.ns.GetType(i.Type)
 	}
 	if t == nil {
-		tv.errors <- ErrPosf(i.Position, "unknown type %s", i.Type)
+		tv.errors <- errPosf(i.Position, "unknown type %s", i.Type)
 		return
 	}
 	if i.Optional {
@@ -156,10 +156,10 @@ func standardType(typeName string) ast.Type {
 
 func (tv *typesVisitor) VisitEnumField(i *proto.EnumField) {
 	if prev, ok := tv.enumCtx.prevField[i.Name]; ok {
-		tv.errors <- ErrPosf(i.Position, "duplicate enum field %s, the previous definition was in %s", i.Name, prev)
+		tv.errors <- errPosf(i.Position, "duplicate enum field %s, the previous definition was in %s", i.Name, prev)
 	}
 	if prev, ok := tv.enumCtx.prevInteger[i.Integer]; ok {
-		tv.errors <- ErrPosf(i.Position, "duplicate enum field id %d, the previous field with the same id was in %s", i.Integer, prev)
+		tv.errors <- errPosf(i.Position, "duplicate enum field id %d, the previous field with the same id was in %s", i.Integer, prev)
 	}
 	tv.enumCtx.prevField[i.Name] = i.Position
 	tv.enumCtx.prevInteger[i.Integer] = i.Position
@@ -192,7 +192,7 @@ func (tv *typesVisitor) VisitComment(e *proto.Comment) {}
 
 func (tv *typesVisitor) VisitOneof(o *proto.Oneof) {
 	if prev, ok := tv.msgCtx.prevField[o.Name]; ok {
-		tv.errors <- ErrPosf(o.Position, "duplicate field %s, the previous definition was in %s", o.Name, prev)
+		tv.errors <- errPosf(o.Position, "duplicate field %s, the previous definition was in %s", o.Name, prev)
 	}
 	tv.msgCtx.prevField[o.Name] = o.Position
 
@@ -210,10 +210,10 @@ func (tv *typesVisitor) VisitOneof(o *proto.Oneof) {
 
 func (tv *typesVisitor) VisitOneofField(o *proto.OneOfField) {
 	if prev, ok := tv.msgCtx.prevField[o.Name]; ok {
-		tv.errors <- ErrPosf(o.Position, "duplicate field %s, the previous definition was in %s", o.Name, prev)
+		tv.errors <- errPosf(o.Position, "duplicate field %s, the previous definition was in %s", o.Name, prev)
 	}
 	if prev, ok := tv.msgCtx.prevInteger[o.Sequence]; ok {
-		tv.errors <- ErrPosf(o.Position, "duplicate field sequence %d, the previous valuy was in %s", o.Sequence, prev)
+		tv.errors <- errPosf(o.Position, "duplicate field sequence %d, the previous valuy was in %s", o.Sequence, prev)
 	}
 	tv.msgCtx.prevField[o.Name] = o.Position
 	tv.msgCtx.prevInteger[o.Sequence] = o.Position
@@ -231,7 +231,7 @@ func (tv *typesVisitor) VisitOneofField(o *proto.OneOfField) {
 		t = tv.ns.GetType(o.Type)
 	}
 	if t == nil {
-		tv.errors <- ErrPosf(o.Position, "unknown type %s", o.Type)
+		tv.errors <- errPosf(o.Position, "unknown type %s", o.Type)
 		return
 	}
 	tv.oneOf.Branches = append(tv.oneOf.Branches, ast.OneOfBranch{
@@ -247,10 +247,10 @@ func (tv *typesVisitor) VisitRPC(r *proto.RPC)           {}
 
 func (tv *typesVisitor) VisitMapField(f *proto.MapField) {
 	if prev, ok := tv.msgCtx.prevField[f.Name]; ok {
-		tv.errors <- ErrPosf(f.Position, "duplicate field %s, the previous definition was in %s", f.Name, prev)
+		tv.errors <- errPosf(f.Position, "duplicate field %s, the previous definition was in %s", f.Name, prev)
 	}
 	if prev, ok := tv.msgCtx.prevInteger[f.Sequence]; ok {
-		tv.errors <- ErrPosf(f.Position, "duplicate field sequence %d, the previous valuy was in %s", f.Sequence, prev)
+		tv.errors <- errPosf(f.Position, "duplicate field sequence %d, the previous valuy was in %s", f.Sequence, prev)
 	}
 	tv.msgCtx.prevField[f.Name] = f.Position
 	tv.msgCtx.prevInteger[f.Sequence] = f.Position
@@ -265,19 +265,19 @@ func (tv *typesVisitor) VisitMapField(f *proto.MapField) {
 
 	keyRawType := standardType(f.KeyType)
 	if keyRawType == nil {
-		tv.errors <- ErrPosf(f.Position, "invalid map key type %s", f.Type)
+		tv.errors <- errPosf(f.Position, "invalid map key type %s", f.Type)
 		return
 	}
 	keyType, isHashable := keyRawType.(ast.Hashable)
 	if !isHashable {
-		tv.errors <- ErrPosf(f.Position, "invalid map key type %s", f.Type)
+		tv.errors <- errPosf(f.Position, "invalid map key type %s", f.Type)
 	}
 
 	valType := standardType(f.KeyType)
 	if valType == nil {
 		valType = tv.ns.GetType(f.Type)
 		if valType == nil {
-			tv.errors <- ErrPosf(f.Position, "unknown value type %s", f.Type)
+			tv.errors <- errPosf(f.Position, "unknown value type %s", f.Type)
 			return
 		}
 	}

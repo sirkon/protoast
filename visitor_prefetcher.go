@@ -40,13 +40,13 @@ func (p *prefetcher) VisitOption(o *proto.Option)     {}
 func (p *prefetcher) VisitImport(i *proto.Import) {
 	ins, err := p.nss.get(i.Filename)
 	if err != nil {
-		p.errors <- ErrPosf(i.Position, "reading import %s: %s", i.Filename, err)
+		p.errors <- errPosf(i.Position, "reading import %s: %s", i.Filename, err)
 		return
 	}
 
 	p.ns, err = p.ns.WithImport(ins)
 	if err != nil {
-		p.errors <- ErrPos(i.Position, err)
+		p.errors <- errPos(i.Position, err)
 	}
 }
 

@@ -7,26 +7,26 @@ import (
 	"github.com/pkg/errors"
 )
 
-var _ error = errPos{}
+var _ error = errorPosition{}
 
-type errPos struct {
+type errorPosition struct {
 	pos scanner.Position
 	err error
 }
 
-func (e errPos) Error() string {
+func (e errorPosition) Error() string {
 	return fmt.Sprintf("%s %s", e.pos, e.err)
 }
 
-// ErrPos возвращает позиционную ошибку
-func ErrPos(pos scanner.Position, err error) error {
-	return errPos{
+// errPos возвращает позиционную ошибку
+func errPos(pos scanner.Position, err error) error {
+	return errorPosition{
 		pos: pos,
 		err: err,
 	}
 }
 
-// ErrPosf позиционная ошибка с форматом
-func ErrPosf(pos scanner.Position, format string, a ...interface{}) error {
-	return ErrPos(pos, errors.Errorf(format, a...))
+// errPosf позиционная ошибка с форматом
+func errPosf(pos scanner.Position, format string, a ...interface{}) error {
+	return errPos(pos, errors.Errorf(format, a...))
 }

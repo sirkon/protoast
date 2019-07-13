@@ -42,7 +42,6 @@ func (s *Namespaces) get(importPath string) (namespace.Namespace, error) {
 	if ns.Finalized() {
 		return ns, nil
 	}
-
 	protoItem, err := s.files.File(importPath)
 	if err != nil {
 		return nil, errors.WithMessagef(err, "getting file %s", importPath)
