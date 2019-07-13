@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package sample;
+
+enum Error {
+    RESERVED = 0;
+    OK = 200;
+    ERROR = 404;
+}

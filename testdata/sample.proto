@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package sample;
+
+import "errors.proto";
+import "users.proto";
+import "google/protobuf/any.proto";
+
+message Simple {
+    google.protobuf.Any anyField = 1;
+    bool boolField = 2;
+    bytes bytesField = 3;
+    fixed32 fixed32Field = 4;
+    fixed64 fixed64Field = 5;
+    float floatField = 6;
+    double doubleField = 7;
+    int32 int32Field = 8;
+    int64 int64Field = 9;
+    sfixed32 sfixed32Field = 10;
+    sfixed64 sfixed64Field = 11;
+    sint32 sint32Field = 12;
+    sint64 sint64Field = 13;
+    uint32 uint32Field = 14;
+    uint64 uint64Field = 15;
+}
+
+enum Easy {
+    RESERVED = 0;
+    VALUE = 1;
+}
+
+message Response {
+    Error code = 1;
+    sample.User user = 2;
+    map<string, string> options = 3;
+    oneof oo {
+        string field1 = 4;
+        int32 field2 = 5;
+    }
+}
