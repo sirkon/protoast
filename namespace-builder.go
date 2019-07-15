@@ -27,6 +27,11 @@ type Namespaces struct {
 	errProcessing func(error)
 }
 
+// Scopes возвращает все имена скоупов
+func (s *Namespaces) Scopes() []string {
+	return s.nsBuilder.Scopes()
+}
+
 // Get получение пространства имён для данного файла
 func (s *Namespaces) Get(importPath string) (Namespace, error) {
 	return s.get(importPath)

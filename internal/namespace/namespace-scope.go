@@ -10,7 +10,7 @@ import (
 )
 
 func newScope(name string, outer Namespace, builder *Builder) Namespace {
-	scopeName := outer.String() + ":scope=" + name
+	scopeName := builder.scopeNaming(outer.String(), name)
 	ns := &scope{
 		name:    scopeName,
 		outer:   outer,
