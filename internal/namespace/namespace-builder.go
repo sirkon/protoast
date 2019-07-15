@@ -4,16 +4,6 @@ import (
 	"sort"
 )
 
-// DefaultScopeNaming конструирование имени скоупа по-умолчанию
-func DefaultScopeNaming(first, last string) string {
-	return first + "::" + last
-}
-
-// NewBuilder создание построителя пространства имён
-func NewBuilder() *Builder {
-	return NewBuilderNaming(DefaultScopeNaming)
-}
-
 // NewBuilderNaming построитель пространства имён с настраиваемой функцией получения имени вложенной области видимости
 func NewBuilderNaming(naming func(string, string) string) *Builder {
 	return &Builder{

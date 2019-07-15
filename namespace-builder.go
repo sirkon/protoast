@@ -13,11 +13,22 @@ import (
 //    imports:        <путь импортирования> => <абсолютный путь импортируемого файла>
 //    errProcessing:  функция обработки ошибок разбора
 func NewNamespaces(imports map[string]string, errProcessing func(error)) *Namespaces {
+	return NewNamespaceWithCustomNaming(imports, errProcessing, DefaultNaming)
+}
+
+// DefaultNaming определение имени области видимости по умолчанию
+func DefaultNaming(first, last string) string {
+	return first + "::" + last
+}
+
+// NewNamespaceWithCustomNaming аналогично предыдущей, но добавляет пользовательское определение именования области видимости
+func NewNamespaceWithCustomNaming(imports map[string]string, errProcessing func(error), scopeNaming func(string, string) string) *Namespaces {
 	return &Namespaces{
 		files:         files.New(imports),
-		nsBuilder:     namespace.NewBuilder(),
+		nsBuilder:     namespace.NewBuilderNaming(scopeNaming),
 		errProcessing: errProcessing,
 	}
+
 }
 
 // Namespaces вычисление пространств имён для файлов
