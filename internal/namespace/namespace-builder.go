@@ -1,9 +1,5 @@
 package namespace
 
-import (
-	"sort"
-)
-
 // NewBuilderNaming построитель пространства имён с настраиваемой функцией получения имени вложенной области видимости
 func NewBuilderNaming(naming func(string, string) string) *Builder {
 	return &Builder{
@@ -35,14 +31,4 @@ func (nb *Builder) get(fileName string, ns Namespace) Namespace {
 // Get получение пространства имён для proto-файла с данным путём.
 func (nb *Builder) Get(fileName string) Namespace {
 	return nb.get(fileName, nil)
-}
-
-// Scopes получение списка имён в пространстве.
-func (nb *Builder) Scopes() []string {
-	var res []string
-	for name := range nb.mapping {
-		res = append(res, name)
-	}
-	sort.Strings(res)
-	return res
 }

@@ -38,14 +38,14 @@ type Namespaces struct {
 	errProcessing func(error)
 }
 
-// Scopes возвращает все имена скоупов
-func (s *Namespaces) Scopes() []string {
-	return s.nsBuilder.Scopes()
-}
-
 // Get получение пространства имён для данного файла
 func (s *Namespaces) Get(importPath string) (Namespace, error) {
 	return s.get(importPath)
+}
+
+// GetScope получение пространства имён для областей видимости. Можно вызывать только после обработки файлов
+func (s *Namespaces) GetScope(access string) Namespace {
+	return s.nsBuilder.Get(access)
 }
 
 // Proto получение готового к обходу представления файла предоставляемого библиотекой gitub.com/emicklei/proto
