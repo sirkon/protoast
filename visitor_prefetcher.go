@@ -10,8 +10,9 @@ import (
 var _ proto.Visitor = &prefetcher{}
 
 type prefetcher struct {
-	ns  namespace.Namespace
-	nss *Namespaces
+	file *ast.File
+	ns   namespace.Namespace
+	nss  *Namespaces
 
 	errors chan<- error
 }
@@ -27,15 +28,26 @@ func (p *prefetcher) VisitMessage(m *proto.Message) {
 		e.Accept(v)
 	}
 
-	if err := p.ns.SetType(m.Name, &ast.Message{Name: m.Name}, m.Position); err != nil {
+	message := &ast.Message{
+		File: p.file,
+		Name: m.Name,
+	}
+	if err := p.ns.SetType(m.Name, message, m.Position); err != nil {
 		v.errors <- err
 	}
 }
 
-func (p *prefetcher) VisitService(v *proto.Service)   {}
-func (p *prefetcher) VisitSyntax(s *proto.Syntax)     {}
-func (p *prefetcher) VisitPackage(pkg *proto.Package) { p.ns.SetPkgName(pkg.Name) }
-func (p *prefetcher) VisitOption(o *proto.Option)     {}
+func (p *prefetcher) VisitService(v *proto.Service) {}
+func (p *prefetcher) VisitSyntax(s *proto.Syntax)   {}
+
+func (p *prefetcher) VisitPackage(pkg *proto.Package) {
+	p.file.GoPkg = pkg.Name
+	if err := p.ns.SetPkgName(pkg.Name); err != nil {
+		p.errors <- err
+	}
+}
+
+func (p *prefetcher) VisitOption(o *proto.Option) {}
 
 func (p *prefetcher) VisitImport(i *proto.Import) {
 	ins, err := p.nss.get(i.Filename)
@@ -54,7 +66,12 @@ func (p *prefetcher) VisitNormalField(i *proto.NormalField) {}
 func (p *prefetcher) VisitEnumField(i *proto.EnumField)     {}
 
 func (p *prefetcher) VisitEnum(e *proto.Enum) {
-	if err := p.ns.SetType(e.Name, &ast.Enum{Name: e.Name}, e.Position); err != nil {
+	enum := &ast.Enum{
+		File:   p.file,
+		Name:   e.Name,
+		Values: nil,
+	}
+	if err := p.ns.SetType(e.Name, enum, e.Position); err != nil {
 		p.errors <- err
 	}
 }

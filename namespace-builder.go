@@ -4,6 +4,7 @@ import (
 	"github.com/emicklei/proto"
 	"github.com/pkg/errors"
 
+	"github.com/sirkon/prototypes/ast"
 	"github.com/sirkon/prototypes/internal/files"
 	"github.com/sirkon/prototypes/internal/namespace"
 )
@@ -63,7 +64,7 @@ func (s *Namespaces) get(importPath string) (namespace.Namespace, error) {
 		return nil, errors.WithMessagef(err, "getting file %s", importPath)
 	}
 
-	if err = s.processFile(ns, protoItem); err != nil {
+	if err = s.processFile(ns, protoItem, importPath); err != nil {
 		return nil, errors.WithMessagef(err, "processing file %s", importPath)
 	}
 	ns.Finalize()
@@ -71,9 +72,12 @@ func (s *Namespaces) get(importPath string) (namespace.Namespace, error) {
 	return ns, nil
 }
 
-func (s *Namespaces) processFile(ns namespace.Namespace, p *proto.Proto) error {
+func (s *Namespaces) processFile(ns namespace.Namespace, p *proto.Proto, importPath string) error {
 	errChan := make(chan error)
 	pf := prefetcher{
+		file: &ast.File{
+			Name: importPath,
+		},
 		ns:     ns,
 		nss:    s,
 		errors: errChan,

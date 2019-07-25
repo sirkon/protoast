@@ -4,6 +4,7 @@ var _ Type = &Enum{}
 
 // Enum описание enum-типов
 type Enum struct {
+	File   *File
 	Name   string
 	Values []EnumValue
 }

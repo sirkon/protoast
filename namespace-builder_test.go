@@ -26,6 +26,10 @@ func TestNamespaces_Get(t *testing.T) {
 
 	require.Equal(t, ns.GetType("dos not exist"), nil)
 	require.Equal(t, ns.GetType("Simple"), &ast.Message{
+		File: &ast.File{
+			Name:  "sample.proto",
+			GoPkg: "sample",
+		},
 		Name: "Simple",
 		Fields: []ast.MessageField{
 			{
@@ -106,6 +110,10 @@ func TestNamespaces_Get(t *testing.T) {
 		},
 	})
 	require.Equal(t, ns.GetType("Easy"), &ast.Enum{
+		File: &ast.File{
+			Name:  "sample.proto",
+			GoPkg: "sample",
+		},
 		Name: "Easy",
 		Values: []ast.EnumValue{
 			{
@@ -119,12 +127,20 @@ func TestNamespaces_Get(t *testing.T) {
 		},
 	})
 	require.Equal(t, ns.GetType("Response"), &ast.Message{
+		File: &ast.File{
+			Name:  "sample.proto",
+			GoPkg: "sample",
+		},
 		Name: "Response",
 		Fields: []ast.MessageField{
 			{
 				Name:     "code",
 				Sequence: 1,
 				Type: &ast.Enum{
+					File: &ast.File{
+						Name:  "errors.proto",
+						GoPkg: "sample",
+					},
 					Name: "Error",
 					Values: []ast.EnumValue{
 						{
@@ -146,6 +162,10 @@ func TestNamespaces_Get(t *testing.T) {
 				Name:     "user",
 				Sequence: 2,
 				Type: &ast.Message{
+					File: &ast.File{
+						Name:  "users.proto",
+						GoPkg: "sample",
+					},
 					Name: "User",
 					Fields: []ast.MessageField{
 						{
@@ -173,7 +193,7 @@ func TestNamespaces_Get(t *testing.T) {
 				Name:     "oo",
 				Sequence: -1,
 				Type: &ast.OneOf{
-					Name: "", // это поле почему-то не отдаёт либа
+					Name: "oo", // это поле почему-то не отдаёт либа
 					Branches: []ast.OneOfBranch{
 						{
 							Name:     "field1",

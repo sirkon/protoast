@@ -55,9 +55,14 @@ func (tv *typesVisitor) VisitMessage(m *proto.Message) {
 
 func (tv *typesVisitor) VisitService(v *proto.Service) {}
 
-func (tv *typesVisitor) VisitSyntax(s *proto.Syntax)   {}
-func (tv *typesVisitor) VisitPackage(p *proto.Package) { tv.ns.SetPkgName(p.Name) }
-func (tv *typesVisitor) VisitOption(o *proto.Option)   {}
+func (tv *typesVisitor) VisitSyntax(s *proto.Syntax) {}
+
+func (tv *typesVisitor) VisitPackage(p *proto.Package) {
+	if err := tv.ns.SetPkgName(p.Name); err != nil {
+		tv.errors <- err
+	}
+}
+func (tv *typesVisitor) VisitOption(o *proto.Option) {}
 
 func (tv *typesVisitor) VisitImport(i *proto.Import) {
 	importNs, err := tv.nss.get(i.Filename)
@@ -178,7 +183,7 @@ func (tv *typesVisitor) VisitEnumField(i *proto.EnumField) {
 func (tv *typesVisitor) VisitEnum(e *proto.Enum) {
 	enum := tv.ns.GetType(e.Name)
 	if enum == nil {
-		panic("internal error: enum must be predeclared on prefetch phase")
+		panic("internal error: enum must be predeclared on the prefetch phase")
 	}
 	tv.enumCtx.item = enum.(*ast.Enum)
 	tv.enumCtx.prevField = map[string]scanner.Position{}
@@ -196,7 +201,9 @@ func (tv *typesVisitor) VisitOneof(o *proto.Oneof) {
 	}
 	tv.msgCtx.prevField[o.Name] = o.Position
 
-	tv.oneOf = &ast.OneOf{}
+	tv.oneOf = &ast.OneOf{
+		Name: o.Name,
+	}
 	tv.msgCtx.item.Fields = append(tv.msgCtx.item.Fields, ast.MessageField{
 		Name:     o.Name,
 		Sequence: -1,
