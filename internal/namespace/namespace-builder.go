@@ -1,17 +1,20 @@
 package namespace
 
-// NewBuilderNaming построитель пространства имён с настраиваемой функцией получения имени вложенной области видимости
+import (
+	"github.com/sirkon/protoast/ast"
+)
+
 func NewBuilderNaming(naming func(string, string) string) *Builder {
 	return &Builder{
-		mapping:     map[string]Namespace{},
-		scopeNaming: naming,
+		mapping:	map[string]Namespace{},
+		scopeNaming:	naming,
 	}
 }
 
-// Builder построение пространств имён
 type Builder struct {
-	mapping     map[string]Namespace
-	scopeNaming func(first, last string) string
+	mapping		map[string]Namespace
+	scopeNaming	func(first, last string) string
+	files		map[string]*ast.File
 }
 
 func (nb *Builder) get(fileName string, ns Namespace) Namespace {
@@ -28,7 +31,6 @@ func (nb *Builder) get(fileName string, ns Namespace) Namespace {
 	return ns
 }
 
-// Get получение пространства имён для proto-файла с данным путём.
 func (nb *Builder) Get(fileName string) Namespace {
 	return nb.get(fileName, nil)
 }

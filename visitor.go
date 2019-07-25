@@ -1,43 +1,46 @@
-package prototypes
+package protoast
 
 import (
 	"text/scanner"
 
 	"github.com/emicklei/proto"
 
-	"github.com/sirkon/prototypes/ast"
-	"github.com/sirkon/prototypes/internal/namespace"
+	"github.com/sirkon/protoast/ast"
+	"github.com/sirkon/protoast/internal/namespace"
 )
 
 var _ proto.Visitor = &typesVisitor{}
 
 type typesVisitor struct {
-	ns  namespace.Namespace
-	nss *Namespaces
+	file	*ast.File
+	ns	namespace.Namespace
+	nss	*Builder
 
-	errors chan<- error
+	errors	chan<- error
 
-	enumCtx struct {
-		item        *ast.Enum
-		prevField   map[string]scanner.Position
-		prevInteger map[int]scanner.Position
+	enumCtx	struct {
+		item		*ast.Enum
+		prevField	map[string]scanner.Position
+		prevInteger	map[int]scanner.Position
 	}
 
-	msgCtx struct {
-		onMsg       bool
-		item        *ast.Message
-		prevField   map[string]scanner.Position
-		prevInteger map[int]scanner.Position
+	msgCtx	struct {
+		onMsg		bool
+		item		*ast.Message
+		prevField	map[string]scanner.Position
+		prevInteger	map[int]scanner.Position
 	}
 
-	oneOf *ast.OneOf
+	oneOf	*ast.OneOf
+
+	service	*ast.Service
 }
 
 func (tv *typesVisitor) VisitMessage(m *proto.Message) {
 	v := &typesVisitor{
-		ns:     tv.ns.WithScope(m.Name),
-		nss:    tv.nss,
-		errors: tv.errors,
+		ns:	tv.ns.WithScope(m.Name),
+		nss:	tv.nss,
+		errors:	tv.errors,
 	}
 
 	msg := tv.ns.GetType(m.Name)
@@ -54,19 +57,32 @@ func (tv *typesVisitor) VisitMessage(m *proto.Message) {
 	v.msgCtx.item = nil
 }
 
-func (tv *typesVisitor) VisitService(v *proto.Service) {}
+func (tv *typesVisitor) VisitService(v *proto.Service) {
+	tv.service = &ast.Service{
+		File:	tv.file,
+		Name:	v.Name,
+	}
 
-func (tv *typesVisitor) VisitSyntax(s *proto.Syntax) {}
+	for _, e := range v.Elements {
+		e.Accept(tv)
+	}
+	if err := tv.ns.SetNode(v.Name, tv.service, v.Position); err != nil {
+		tv.errors <- err
+	}
+	tv.file.Services = append(tv.file.Services, tv.service)
+}
+
+func (tv *typesVisitor) VisitSyntax(s *proto.Syntax)	{}
 
 func (tv *typesVisitor) VisitPackage(p *proto.Package) {
 	if err := tv.ns.SetPkgName(p.Name); err != nil {
 		tv.errors <- err
 	}
 }
-func (tv *typesVisitor) VisitOption(o *proto.Option) {}
+func (tv *typesVisitor) VisitOption(o *proto.Option)	{}
 
 func (tv *typesVisitor) VisitImport(i *proto.Import) {
-	importNs, err := tv.nss.get(i.Filename)
+	importNs, _, err := tv.nss.get(i.Filename)
 	if err != nil {
 		tv.errors <- errPosf(i.Position, "reading import %s: %s", i.Filename, err)
 		return
@@ -115,10 +131,10 @@ func (tv *typesVisitor) VisitNormalField(i *proto.NormalField) {
 		}
 	}
 	tv.msgCtx.item.Fields = append(tv.msgCtx.item.Fields, ast.MessageField{
-		Name:     i.Name,
-		Sequence: i.Sequence,
-		Type:     t,
-		Options:  options,
+		Name:		i.Name,
+		Sequence:	i.Sequence,
+		Type:		t,
+		Options:	options,
 	})
 }
 
@@ -175,9 +191,9 @@ func (tv *typesVisitor) VisitEnumField(i *proto.EnumField) {
 		options[i.ValueOption.Name] = i.ValueOption.Constant.Source
 	}
 	tv.enumCtx.item.Values = append(tv.enumCtx.item.Values, ast.EnumValue{
-		Name:    i.Name,
-		Integer: i.Integer,
-		Options: options,
+		Name:		i.Name,
+		Integer:	i.Integer,
+		Options:	options,
 	})
 }
 
@@ -194,7 +210,7 @@ func (tv *typesVisitor) VisitEnum(e *proto.Enum) {
 	}
 }
 
-func (tv *typesVisitor) VisitComment(e *proto.Comment) {}
+func (tv *typesVisitor) VisitComment(e *proto.Comment)	{}
 
 func (tv *typesVisitor) VisitOneof(o *proto.Oneof) {
 	if prev, ok := tv.msgCtx.prevField[o.Name]; ok {
@@ -203,13 +219,13 @@ func (tv *typesVisitor) VisitOneof(o *proto.Oneof) {
 	tv.msgCtx.prevField[o.Name] = o.Position
 
 	tv.oneOf = &ast.OneOf{
-		ParentMsg: tv.msgCtx.item,
-		Name:      o.Name,
+		ParentMsg:	tv.msgCtx.item,
+		Name:		o.Name,
 	}
 	tv.msgCtx.item.Fields = append(tv.msgCtx.item.Fields, ast.MessageField{
-		Name:     o.Name,
-		Sequence: -1,
-		Type:     tv.oneOf,
+		Name:		o.Name,
+		Sequence:	-1,
+		Type:		tv.oneOf,
 	})
 
 	for _, e := range o.Elements {
@@ -244,15 +260,68 @@ func (tv *typesVisitor) VisitOneofField(o *proto.OneOfField) {
 		return
 	}
 	tv.oneOf.Branches = append(tv.oneOf.Branches, ast.OneOfBranch{
-		Name:     o.Name,
-		Type:     t,
-		Sequence: o.Sequence,
-		Options:  options,
+		Name:		o.Name,
+		Type:		t,
+		Sequence:	o.Sequence,
+		Options:	options,
 	})
 }
 
-func (tv *typesVisitor) VisitReserved(r *proto.Reserved) {}
-func (tv *typesVisitor) VisitRPC(r *proto.RPC)           {}
+func (tv *typesVisitor) VisitReserved(r *proto.Reserved)	{}
+
+func (tv *typesVisitor) VisitRPC(r *proto.RPC) {
+
+	req := tv.ns.GetType(r.RequestType)
+	if req == nil {
+		tv.errors <- errPosf(r.Position, "unknown type %s", r.RequestType)
+		return
+	}
+	if r.StreamsRequest {
+		req = ast.Stream{
+			Type: req,
+		}
+	}
+
+	resp := tv.ns.GetType(r.ReturnsType)
+	if resp == nil {
+		tv.errors <- errPosf(r.Position, "unknown type %s", r.RequestType)
+		return
+	}
+	if r.StreamsReturns {
+		resp = ast.Stream{
+			Type: resp,
+		}
+	}
+
+	var mos []ast.MethodOption
+	for _, o := range r.Options {
+		mo := ast.MethodOption{
+			Name: o.Name,
+		}
+		for _, v := range o.Constant.OrderedMap {
+			mo.Values = append(mo.Values, ast.OptionValue{
+				Name:	v.Name,
+				Value:	v.Source,
+			})
+		}
+		mos = append(mos, mo)
+	}
+
+	rpc := &ast.Method{
+		File:		tv.file,
+		Service:	tv.service,
+		Name:		r.Name,
+		Input:		req,
+		Output:		resp,
+		Options:	mos,
+	}
+	tv.service.Methods = append(tv.service.Methods, rpc)
+
+	if err := tv.ns.SetNode(tv.service.Name+"::"+r.Name, rpc, r.Position); err != nil {
+		tv.errors <- errPosf(r.Position, "duplicate method %s in service %s", r.Name, tv.service.Name)
+		return
+	}
+}
 
 func (tv *typesVisitor) VisitMapField(f *proto.MapField) {
 	if prev, ok := tv.msgCtx.prevField[f.Name]; ok {
@@ -291,17 +360,15 @@ func (tv *typesVisitor) VisitMapField(f *proto.MapField) {
 		}
 	}
 	tv.msgCtx.item.Fields = append(tv.msgCtx.item.Fields, ast.MessageField{
-		Name:     f.Name,
-		Sequence: f.Sequence,
+		Name:		f.Name,
+		Sequence:	f.Sequence,
 		Type: ast.Map{
-			KeyType:   keyType,
-			ValueType: valType,
+			KeyType:	keyType,
+			ValueType:	valType,
 		},
-		Options: options,
+		Options:	options,
 	})
 }
 
-func (tv *typesVisitor) VisitGroup(g *proto.Group) {
-}
-
-func (tv *typesVisitor) VisitExtensions(e *proto.Extensions) {}
+func (tv *typesVisitor) VisitGroup(g *proto.Group)		{}
+func (tv *typesVisitor) VisitExtensions(e *proto.Extensions)	{}

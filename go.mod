@@ -1,4 +1,4 @@
-module github.com/sirkon/prototypes
+module github.com/sirkon/protoast
 
 go 1.12
 

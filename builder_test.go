@@ -1,34 +1,36 @@
-package prototypes
+package protoast
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/sirkon/prototypes/ast"
+	"github.com/sirkon/protoast/ast"
 )
 
 func TestNamespaces_Get(t *testing.T) {
 	mapping := map[string]string{
 		"errors.proto":              "testdata/errors.proto",
 		"sample.proto":              "testdata/sample.proto",
+		"service.proto":             "testdata/service.proto",
 		"users.proto":               "testdata/users.proto",
 		"google/protobuf/any.proto": "testdata/google/protobuf/any.proto",
 	}
 
-	nss := NewNamespaces(mapping, func(err error) {
+	nss := NewBuilder(mapping, func(err error) {
 		t.Errorf("\r%s", err)
 	})
-	ns, err := nss.Get("sample.proto")
+	ns, err := nss.Namespace("sample.proto")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	require.Equal(t, ns.GetType("dos not exist"), nil)
-	require.Equal(t, ns.GetType("Simple"), &ast.Message{
+	simpleType := ns.GetType("Simple")
+	require.Equal(t, &ast.Message{
 		File: &ast.File{
-			Name:  "sample.proto",
-			GoPkg: "sample",
+			Name:    "sample.proto",
+			Package: "sample",
 		},
 		Name: "Simple",
 		Fields: []ast.MessageField{
@@ -108,11 +110,11 @@ func TestNamespaces_Get(t *testing.T) {
 				Type:     ast.Uint64{},
 			},
 		},
-	})
+	}, simpleType)
 	require.Equal(t, ns.GetType("Easy"), &ast.Enum{
 		File: &ast.File{
-			Name:  "sample.proto",
-			GoPkg: "sample",
+			Name:    "sample.proto",
+			Package: "sample",
 		},
 		Name: "Easy",
 		Values: []ast.EnumValue{
@@ -129,8 +131,8 @@ func TestNamespaces_Get(t *testing.T) {
 
 	sample := &ast.Message{
 		File: &ast.File{
-			Name:  "sample.proto",
-			GoPkg: "sample",
+			Name:    "sample.proto",
+			Package: "sample",
 		},
 		Name: "Response",
 		Fields: []ast.MessageField{
@@ -139,8 +141,8 @@ func TestNamespaces_Get(t *testing.T) {
 				Sequence: 1,
 				Type: &ast.Enum{
 					File: &ast.File{
-						Name:  "errors.proto",
-						GoPkg: "sample",
+						Name:    "errors.proto",
+						Package: "sample",
 					},
 					Name: "Error",
 					Values: []ast.EnumValue{
@@ -164,8 +166,8 @@ func TestNamespaces_Get(t *testing.T) {
 				Sequence: 2,
 				Type: &ast.Message{
 					File: &ast.File{
-						Name:  "users.proto",
-						GoPkg: "sample",
+						Name:    "users.proto",
+						Package: "sample",
 					},
 					Name: "User",
 					Fields: []ast.MessageField{
@@ -194,7 +196,7 @@ func TestNamespaces_Get(t *testing.T) {
 				Name:     "oo",
 				Sequence: -1,
 				Type: &ast.OneOf{
-					Name: "oo", // это поле почему-то не отдаёт либа
+					Name: "oo",
 					Branches: []ast.OneOfBranch{
 						{
 							Name:     "field1",
@@ -211,6 +213,74 @@ func TestNamespaces_Get(t *testing.T) {
 			},
 		},
 	}
+
 	sample.Fields[3].Type.(*ast.OneOf).ParentMsg = sample
-	require.Equal(t, sample, ns.GetType("Response"))
+	responseType := ns.GetType("Response")
+	require.Equal(t, sample, responseType)
+
+	ns, err = nss.Namespace("service.proto")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	srv := ns.GetService("Service")
+	require.NotNil(t, srv)
+
+	require.Equal(t, &ast.Service{
+		File: srv.File,
+		Name: "Service",
+		Methods: []*ast.Method{
+			{
+				File:    srv.File,
+				Service: srv,
+				Name:    "Method1",
+				Input:   simpleType,
+				Output:  responseType,
+			},
+			{
+				File:    srv.File,
+				Service: srv,
+				Name:    "Method2",
+				Input:   ast.Stream{Type: simpleType},
+				Output:  responseType,
+				Options: []ast.MethodOption{
+					{
+						Name: "(common.option)",
+						Values: []ast.OptionValue{
+							{
+								Name:  "status",
+								Value: "200",
+							},
+							{
+								Name:  "message",
+								Value: "OK",
+							},
+						},
+					},
+					{
+						Name: "(common.another_option)",
+						Values: []ast.OptionValue{
+							{
+								Name:  "option",
+								Value: "option",
+							},
+						},
+					},
+				},
+			},
+			{
+				File:    srv.File,
+				Service: srv,
+				Name:    "Method3",
+				Input:   simpleType,
+				Output:  ast.Stream{Type: responseType},
+			},
+			{
+				File:    srv.File,
+				Service: srv,
+				Name:    "Method4",
+				Input:   ast.Stream{Type: simpleType},
+				Output:  ast.Stream{Type: responseType},
+			}},
+	}, srv)
 }

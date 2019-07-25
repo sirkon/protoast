@@ -8,21 +8,18 @@ import (
 	"github.com/pkg/errors"
 )
 
-// New конструктор
 func New(importMapping map[string]string) *Files {
 	return &Files{
-		importMapping: importMapping,
-		trees:         map[string]*proto.Proto{},
+		importMapping:	importMapping,
+		trees:		map[string]*proto.Proto{},
 	}
 }
 
-// Files доступ к AST proto-файлов
 type Files struct {
-	importMapping map[string]string
-	trees         map[string]*proto.Proto
+	importMapping	map[string]string
+	trees		map[string]*proto.Proto
 }
 
-// File представление готового для разбора файла с данным путём импорта
 func (f *Files) File(importPath string) (res *proto.Proto, err error) {
 	fileName, ok := f.importMapping[importPath]
 	if !ok {

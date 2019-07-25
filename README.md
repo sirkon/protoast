@@ -1,5 +1,5 @@
-# ProtoTypes
-A library to represent protobuf types definitions shaped into ASTes.
+# ProtoAST
+A library to represent protobuf services definitions shaped into ASTes.
 
 ## Usage
 
@@ -7,16 +7,16 @@ A library to represent protobuf types definitions shaped into ASTes.
 mapping := map[string]string{
 	"file.proto": "/var/lib/protofiles/file.proto",
 }
-ns := prototypes.NewNamespaces(mapping, func(err error) {
+ns := prototypes.NewBuilder(mapping, func(err error) {
 	log.Println(err)
 })
 
-// retrieves namespace object to get ASTes of types defined in the file
-fileTypes, err := ns.Get("file.proto")
+// retrieves AST for file.proto
+file, err := ns.AST("file.proto")
 if err != nil {
 	log.Fatal(err)
 }
 
 // output AST of type Type defined in file.proto
-log.Printf("%#v\n", fileTypes.Get("Type"))
+log.Printf("%#v\n", file.Services[0])
 ```

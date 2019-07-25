@@ -1,10 +1,10 @@
-package prototypes
+package protoast
 
 import (
-	"github.com/sirkon/prototypes/ast"
+	"github.com/sirkon/protoast/ast"
 )
 
-// Namespace представление пространства имён файла
 type Namespace interface {
 	GetType(name string) ast.Type
+	GetService(name string) *ast.Service
 }
