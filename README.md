@@ -7,7 +7,7 @@ A library to represent protobuf services definitions shaped into ASTes.
 mapping := map[string]string{
 	"file.proto": "/var/lib/protofiles/file.proto",
 }
-ns := prototypes.NewBuilder(mapping, func(err error) {
+ns := protoast.NewBuilder(mapping, func(err error) {
 	log.Println(err)
 })
 
