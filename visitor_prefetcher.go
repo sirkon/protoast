@@ -10,31 +10,35 @@ import (
 var _ proto.Visitor = &prefetcher{}
 
 type prefetcher struct {
-	file *ast.File
-	ns   namespace.Namespace
-	nss  *Namespaces
+	file   *ast.File
+	ns     namespace.Namespace
+	nss    *Namespaces
+	curMsg *ast.Message
 
 	errors chan<- error
 }
 
 func (p *prefetcher) VisitMessage(m *proto.Message) {
+	message := &ast.Message{
+		ParentMsg: p.curMsg,
+		File:      p.file,
+		Name:      m.Name,
+	}
 	v := &prefetcher{
 		ns:     p.ns.WithScope(m.Name),
 		nss:    p.nss,
 		errors: p.errors,
+		curMsg: message,
 	}
 
 	for _, e := range m.Elements {
 		e.Accept(v)
 	}
 
-	message := &ast.Message{
-		File: p.file,
-		Name: m.Name,
-	}
 	if err := p.ns.SetType(m.Name, message, m.Position); err != nil {
 		v.errors <- err
 	}
+	p.curMsg = nil
 }
 
 func (p *prefetcher) VisitService(v *proto.Service) {}
@@ -67,9 +71,10 @@ func (p *prefetcher) VisitEnumField(i *proto.EnumField)     {}
 
 func (p *prefetcher) VisitEnum(e *proto.Enum) {
 	enum := &ast.Enum{
-		File:   p.file,
-		Name:   e.Name,
-		Values: nil,
+		ParentMsg: p.curMsg,
+		File:      p.file,
+		Name:      e.Name,
+		Values:    nil,
 	}
 	if err := p.ns.SetType(e.Name, enum, e.Position); err != nil {
 		p.errors <- err

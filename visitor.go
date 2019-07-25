@@ -51,6 +51,7 @@ func (tv *typesVisitor) VisitMessage(m *proto.Message) {
 	for _, e := range m.Elements {
 		e.Accept(v)
 	}
+	v.msgCtx.item = nil
 }
 
 func (tv *typesVisitor) VisitService(v *proto.Service) {}
@@ -202,7 +203,8 @@ func (tv *typesVisitor) VisitOneof(o *proto.Oneof) {
 	tv.msgCtx.prevField[o.Name] = o.Position
 
 	tv.oneOf = &ast.OneOf{
-		Name: o.Name,
+		ParentMsg: tv.msgCtx.item,
+		Name:      o.Name,
 	}
 	tv.msgCtx.item.Fields = append(tv.msgCtx.item.Fields, ast.MessageField{
 		Name:     o.Name,

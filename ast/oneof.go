@@ -4,8 +4,9 @@ var _ Type = &OneOf{}
 
 // OneOf представление oneof-поля в message-ах
 type OneOf struct {
-	Name     string
-	Branches []OneOfBranch
+	ParentMsg *Message
+	Name      string
+	Branches  []OneOfBranch
 }
 
 func (*OneOf) genericType() {}

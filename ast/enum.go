@@ -4,9 +4,10 @@ var _ Type = &Enum{}
 
 // Enum описание enum-типов
 type Enum struct {
-	File   *File
-	Name   string
-	Values []EnumValue
+	File      *File
+	ParentMsg *Message
+	Name      string
+	Values    []EnumValue
 }
 
 func (*Enum) genericType() {}

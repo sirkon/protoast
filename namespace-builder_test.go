@@ -126,7 +126,8 @@ func TestNamespaces_Get(t *testing.T) {
 			},
 		},
 	})
-	require.Equal(t, ns.GetType("Response"), &ast.Message{
+
+	sample := &ast.Message{
 		File: &ast.File{
 			Name:  "sample.proto",
 			GoPkg: "sample",
@@ -209,5 +210,7 @@ func TestNamespaces_Get(t *testing.T) {
 				},
 			},
 		},
-	})
+	}
+	sample.Fields[3].Type.(*ast.OneOf).ParentMsg = sample
+	require.Equal(t, sample, ns.GetType("Response"))
 }

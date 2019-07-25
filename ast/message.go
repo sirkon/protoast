@@ -4,9 +4,10 @@ var _ Type = &Message{}
 
 // Message определение структуры типа message
 type Message struct {
-	File   *File
-	Name   string
-	Fields []MessageField
+	File      *File
+	ParentMsg *Message
+	Name      string
+	Fields    []MessageField
 }
 
 func (*Message) genericType() {}
