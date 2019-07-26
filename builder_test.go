@@ -17,7 +17,9 @@ func TestNamespaces_Get(t *testing.T) {
 		"google/protobuf/any.proto": "testdata/google/protobuf/any.proto",
 	}
 
-	nss := NewBuilder(mapping, func(err error) {
+	files := NewFiles(mapping)
+
+	nss := NewBuilder(files, func(err error) {
 		t.Errorf("\r%s", err)
 	})
 	ns, err := nss.Namespace("sample.proto")
@@ -128,6 +130,23 @@ func TestNamespaces_Get(t *testing.T) {
 			},
 		},
 	})
+	userType := ns.GetType("User")
+	require.Equal(t, userType, &ast.Message{
+		File: userType.(*ast.Message).File,
+		Name: "User",
+		Fields: []ast.MessageField{
+			{
+				Name:     "id",
+				Sequence: 1,
+				Type:     ast.String{},
+			},
+			{
+				Name:     "name",
+				Sequence: 2,
+				Type:     ast.String{},
+			},
+		},
+	})
 
 	sample := &ast.Message{
 		File: &ast.File{
@@ -213,7 +232,6 @@ func TestNamespaces_Get(t *testing.T) {
 			},
 		},
 	}
-
 	sample.Fields[3].Type.(*ast.OneOf).ParentMsg = sample
 	responseType := ns.GetType("Response")
 	require.Equal(t, sample, responseType)
