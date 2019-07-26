@@ -10,15 +10,14 @@ import (
 
 func TestNamespaces_Get(t *testing.T) {
 	mapping := map[string]string{
-		"errors.proto":              "testdata/errors.proto",
-		"sample.proto":              "testdata/sample.proto",
-		"service.proto":             "testdata/service.proto",
-		"users.proto":               "testdata/users.proto",
-		"google/protobuf/any.proto": "testdata/google/protobuf/any.proto",
+		"errors.proto":             "testdata/errors.proto",
+		"sample.proto":             "testdata/sample.proto",
+		"service.proto":            "testdata/service.proto",
+		"users.proto":              "testdata/users.proto",
+		"google/protobuf/any.poto": "testdata/google/protobuf/any.proto",
 	}
 
 	files := NewFiles(mapping)
-
 	nss := NewBuilder(files, func(err error) {
 		t.Errorf("\r%s", err)
 	})
