@@ -19,5 +19,11 @@ if err != nil {
 }
 
 // output AST of type Type defined in file.proto
-log.Printf("%#v\n", file.Services[0])
+log.Printf("%#v", file.Services[0])
+
+// returns comment for the first service in a file
+log.Printf("%#v", ns.Comment(file.Services[0])) 
+
+// returns position of the second service's name
+log.Printf("%#v", ns.Position(file.Service[1], &file.Service[1].Name))
 ```
