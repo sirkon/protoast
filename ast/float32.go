@@ -1,9 +1,12 @@
 package ast
 
-var _ ScalarNode = Float32{}
+var _ ScalarNode = &Float32{}
 
-type Float32 struct{}
+// Float32 представление типа float
+type Float32 struct {
+	unique
+}
 
-func (Float32) genericType()	{}
-func (Float32) node()		{}
-func (Float32) scalar()		{}
+func (*Float32) genericType() {}
+func (*Float32) node()        {}
+func (*Float32) scalar()      {}

@@ -1,11 +1,14 @@
 package ast
 
-var _ Type = Map{}
+var _ Type = &Map{}
 
+// Map представление типа map<KeyType, ValueType>
 type Map struct {
-	KeyType		Hashable
-	ValueType	Type
+	unique
+
+	KeyType   Hashable
+	ValueType Type
 }
 
-func (Map) genericType()	{}
-func (Map) node()		{}
+func (*Map) genericType() {}
+func (*Map) node()        {}

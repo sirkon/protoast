@@ -2,19 +2,28 @@ package ast
 
 var _ Type = &Message{}
 
+// Message представление message
 type Message struct {
-	File		*File
-	ParentMsg	*Message
-	Name		string
-	Fields		[]MessageField
+	unique
+
+	File      *File
+	ParentMsg *Message
+
+	Name   string
+	Fields []*MessageField
 }
 
-func (*Message) genericType()	{}
-func (*Message) node()		{}
+func (*Message) genericType() {}
+func (*Message) node()        {}
 
+var _ Unique = &MessageField{}
+
+// MessageField представление поля message-а
 type MessageField struct {
-	Name		string
-	Sequence	int
-	Type		Type
-	Options		Options
+	unique
+
+	Name     string
+	Sequence int
+	Type     Type
+	Options  []*Option
 }

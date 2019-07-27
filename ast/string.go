@@ -1,10 +1,13 @@
 package ast
 
-var _ Hashable = String{}
+var _ Hashable = &String{}
 
-type String struct{}
+// String представление для стрового типа
+type String struct {
+	unique
+}
 
-func (String) genericType()	{}
-func (String) hashable()	{}
-func (String) node()		{}
-func (String) scalar()		{}
+func (*String) genericType() {}
+func (*String) hashable()    {}
+func (*String) node()        {}
+func (*String) scalar()      {}

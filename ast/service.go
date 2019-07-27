@@ -2,11 +2,14 @@ package ast
 
 var _ Node = &Service{}
 
+// Service представление для сервисов
 type Service struct {
-	File	*File
+	unique
 
-	Name	string
-	Methods	[]*Method
+	File *File
+
+	Name    string
+	Methods []*Method
 }
 
-func (s *Service) node()	{}
+func (s *Service) node() {}

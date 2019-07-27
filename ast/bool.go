@@ -1,9 +1,12 @@
 package ast
 
-var _ ScalarNode = Bool{}
+var _ ScalarNode = &Bool{}
 
-type Bool struct{}
+// Bool представление булевского типа
+type Bool struct {
+	unique
+}
 
-func (Bool) genericType()	{}
-func (Bool) node()		{}
-func (Bool) scalar()		{}
+func (*Bool) genericType() {}
+func (*Bool) node()        {}
+func (*Bool) scalar()      {}

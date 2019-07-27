@@ -2,25 +2,38 @@ package ast
 
 var _ Node = &Method{}
 
+// Method представление для метода
 type Method struct {
-	File	*File
+	unique
 
-	Service	*Service
-	Name	string
-	Input	Type
-	Output	Type
+	File    *File
+	Service *Service
 
-	Options	[]MethodOption
+	Name   string
+	Input  Type
+	Output Type
+
+	Options []*MethodOption
 }
 
-func (m *Method) node()	{}
+func (m *Method) node() {}
 
+var _ Unique = &MethodOption{}
+
+// MethodOption представление для опции метода
 type MethodOption struct {
-	Name	string
-	Values	[]OptionValue
+	unique
+
+	Name   string
+	Values []*MethodOptionValue
 }
 
-type OptionValue struct {
-	Name	string
-	Value	string
+var _ Unique = &MethodOptionValue{}
+
+// MethodOptionValue представление для значения опции метода
+type MethodOptionValue struct {
+	unique
+
+	Name  string
+	Value string
 }

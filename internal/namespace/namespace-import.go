@@ -14,9 +14,9 @@ func newImport(main, importNs Namespace, builder *Builder) Namespace {
 }
 
 type nsImport struct {
-	main	Namespace
-	imports	[]Namespace
-	builder	*Builder
+	main    Namespace
+	imports []Namespace
+	builder *Builder
 }
 
 func (ns *nsImport) getNode(name string) (ast.Node, scanner.Position) {
@@ -44,16 +44,16 @@ func (ns *nsImport) getNode(name string) (ast.Node, scanner.Position) {
 	return nil, pos
 }
 
-func (ns *nsImport) String() string			{ return ns.main.String() }
-func (ns *nsImport) SetPkgName(pkg string) error	{ return ns.main.SetPkgName(pkg) }
-func (ns *nsImport) PkgName() string			{ return ns.main.PkgName() }
+func (ns *nsImport) String() string              { return ns.main.String() }
+func (ns *nsImport) SetPkgName(pkg string) error { return ns.main.SetPkgName(pkg) }
+func (ns *nsImport) PkgName() string             { return ns.main.PkgName() }
 
 func (ns *nsImport) WithImport(pkgNamespace Namespace) (Namespace, error) {
 	ns.imports = append(ns.imports, pkgNamespace)
 	return ns, nil
 }
 
-func (ns *nsImport) WithScope(name string) Namespace	{ return newScope(name, ns, ns.builder) }
+func (ns *nsImport) WithScope(name string) Namespace { return newScope(name, ns, ns.builder) }
 
 func (ns *nsImport) GetType(name string) ast.Type {
 	res, _ := ns.getNode(name)
@@ -79,5 +79,5 @@ func (ns *nsImport) SetNode(name string, def ast.Node, defPos scanner.Position) 
 	return ns.main.SetNode(name, def, defPos)
 }
 
-func (ns *nsImport) Finalized() bool	{ return ns.main.Finalized() }
-func (ns *nsImport) Finalize()		{ ns.main.Finalize() }
+func (ns *nsImport) Finalized() bool { return ns.main.Finalized() }
+func (ns *nsImport) Finalize()       { ns.main.Finalize() }

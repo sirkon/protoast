@@ -1,8 +1,11 @@
 package ast
 
-var _ Type = Any{}
+var _ Type = &Any{}
 
-type Any struct{}
+// Any представление типа golang.protobuf.Any
+type Any struct {
+	unique
+}
 
-func (Any) genericType()	{}
-func (Any) node()		{}
+func (*Any) genericType() {}
+func (*Any) node()        {}

@@ -2,18 +2,27 @@ package ast
 
 var _ Type = &OneOf{}
 
+// OneOf представление для oneof поля message-а
 type OneOf struct {
-	ParentMsg	*Message
-	Name		string
-	Branches	[]OneOfBranch
+	unique
+
+	ParentMsg *Message
+
+	Name     string
+	Branches []*OneOfBranch
 }
 
-func (*OneOf) genericType()	{}
-func (*OneOf) node()		{}
+func (*OneOf) genericType() {}
+func (*OneOf) node()        {}
 
+var _ Unique = &OneOfBranch{}
+
+// OneOfBranch представление для ветви
 type OneOfBranch struct {
-	Name		string
-	Type		Type
-	Sequence	int
-	Options		Options
+	unique
+
+	Name     string
+	Type     Type
+	Sequence int
+	Options  []*Option
 }

@@ -1,6 +1,7 @@
 package protoast
 
 import (
+	"reflect"
 	"text/scanner"
 
 	"github.com/emicklei/proto"
@@ -28,16 +29,64 @@ func NewBuilderWithCustomNaming(imports Files, errProcessing func(error), scopeN
 		asts:          map[string]*ast.File{},
 		finalNses:     map[string]Namespace{},
 		errProcessing: errProcessing,
+		comments:      map[string]*ast.Comment{},
+		positions:     map[string]scanner.Position{},
+		uniqueContext: ast.UniqueContext{},
 	}
 
 }
 
+// StringRef создаёт ссылку на строку
+func StringRef(value string) *string {
+	return &value
+}
+
+// Builder построитель структурированной информации
 type Builder struct {
 	protos        *protos
 	nsBuilder     *namespace.Builder
 	asts          map[string]*ast.File
 	finalNses     map[string]Namespace
 	errProcessing func(error)
+
+	comments      map[string]*ast.Comment
+	positions     map[string]scanner.Position
+	uniqueContext ast.UniqueContext
+}
+
+// Comment возвращает комментарий для сущности реализующей Unique
+func (s *Builder) Comment(k ast.Unique) *ast.Comment {
+	return s.comments[ast.GetKey(k)]
+}
+
+// CommentField возвращает комментарий для поля сущности реализующей Unique
+func (s *Builder) CommentField(k ast.Unique, fieldAddr interface{}) *ast.Comment {
+	return s.comments[ast.GetFieldKey(k, fieldAddr)]
+}
+
+// Position возвращает позицию данного Unique
+func (s *Builder) Position(k ast.Unique) scanner.Position {
+	res, ok := s.positions[ast.GetKey(k)]
+	if !ok {
+		panic(errors.Errorf("no position set for %T", k))
+	}
+	return res
+}
+
+// PositionField возвращает позицию данного для поля данного Uniq
+func (s *Builder) PositionField(k ast.Unique, fieldAddr interface{}) scanner.Position {
+	res, ok := s.positions[ast.GetFieldKey(k, fieldAddr)]
+	if !ok {
+		val := reflect.ValueOf(k).Elem()
+		addr := reflect.ValueOf(fieldAddr).Pointer()
+		for i := 0; i < val.NumField(); i++ {
+			if val.Field(i).Addr().Pointer() == addr {
+				panic(errors.Errorf("no position was set for %T.%s", k, val.Type().Field(i).Name))
+			}
+		}
+		panic("must not be here")
+	}
+	return res
 }
 
 // AST представление для файла с данным относительным путём

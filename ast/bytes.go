@@ -1,9 +1,12 @@
 package ast
 
-var _ ScalarNode = Bytes{}
+var _ ScalarNode = &Bytes{}
 
-type Bytes struct{}
+// Bytes представление типа bytes
+type Bytes struct {
+	unique
+}
 
-func (Bytes) genericType()	{}
-func (Bytes) node()		{}
-func (Bytes) scalar()		{}
+func (*Bytes) genericType() {}
+func (*Bytes) node()        {}
+func (*Bytes) scalar()      {}

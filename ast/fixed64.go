@@ -1,10 +1,13 @@
 package ast
 
-var _ Hashable = Fixed64{}
+var _ Hashable = &Fixed64{}
 
-type Fixed64 struct{}
+// Fixed64 представление типа fixed64
+type Fixed64 struct {
+	unique
+}
 
-func (Fixed64) genericType()	{}
-func (Fixed64) hashable()	{}
-func (Fixed64) node()		{}
-func (Fixed64) scalar()		{}
+func (*Fixed64) genericType() {}
+func (*Fixed64) hashable()    {}
+func (*Fixed64) node()        {}
+func (*Fixed64) scalar()      {}

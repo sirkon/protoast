@@ -1,10 +1,13 @@
 package ast
 
-var _ Hashable = Sint32{}
+var _ Hashable = &Sint32{}
 
-type Sint32 struct{}
+// Sint32 представление для типа sint32
+type Sint32 struct {
+	unique
+}
 
-func (Sint32) genericType()	{}
-func (Sint32) hashable()	{}
-func (Sint32) node()		{}
-func (Sint32) scalar()		{}
+func (*Sint32) genericType() {}
+func (*Sint32) hashable()    {}
+func (*Sint32) node()        {}
+func (*Sint32) scalar()      {}

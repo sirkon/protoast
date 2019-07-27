@@ -1,9 +1,12 @@
 package ast
 
-var _ ScalarNode = Float64{}
+var _ ScalarNode = &Float64{}
 
-type Float64 struct{}
+// Float64 представление типа double
+type Float64 struct {
+	unique
+}
 
-func (Float64) genericType()	{}
-func (Float64) node()		{}
-func (Float64) scalar()		{}
+func (*Float64) genericType() {}
+func (*Float64) node()        {}
+func (*Float64) scalar()      {}
