@@ -83,7 +83,7 @@ func (tv *typesVisitor) VisitMessage(m *proto.Message) {
 	v.msgCtx.item.File = tv.file
 	v.msgCtx.prevInteger = map[int]scanner.Position{}
 
-	if msg.ParentMsg == nil {
+	if msg.ParentMsg == nil && !m.IsExtend {
 		tv.file.Types = append(tv.file.Types, msg)
 	}
 

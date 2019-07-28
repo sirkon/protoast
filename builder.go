@@ -17,7 +17,7 @@ func NewBuilder(imports Files, errProcessing func(error)) *Builder {
 }
 
 func defaultNaming(first, last string) string {
-	return first + "::" + last
+	return first + "." + last
 }
 
 func newBuilderWithCustomNaming(imports Files, errProcessing func(error), scopeNaming func(string, string) string) *Builder {

@@ -2,6 +2,7 @@ package protoast
 
 import (
 	"github.com/emicklei/proto"
+	"github.com/pkg/errors"
 
 	"github.com/sirkon/protoast/ast"
 	"github.com/sirkon/protoast/internal/namespace"
@@ -19,10 +20,24 @@ type prefetcher struct {
 }
 
 func (p *prefetcher) VisitMessage(m *proto.Message) {
-	message := &ast.Message{
-		ParentMsg: p.curMsg,
-		File:      p.file,
-		Name:      m.Name,
+	var message *ast.Message
+	if m.IsExtend {
+		msg := p.ns.GetType(m.Name)
+		if msg == nil {
+			p.errors <- errors.Errorf("%s failed to find type %s to extend", m.Position, m.Name)
+			return
+		}
+		var ok bool
+		message, ok = msg.(*ast.Message)
+		if !ok {
+			p.errors <- errors.Errorf("%s type %s turned to be not a message (%T)", m.Position, m.Name, msg)
+		}
+	} else {
+		message = &ast.Message{
+			ParentMsg: p.curMsg,
+			File:      p.file,
+			Name:      m.Name,
+		}
 	}
 	if p.curMsg != nil {
 		p.curMsg.Types = append(p.curMsg.Types, message)
@@ -39,6 +54,9 @@ func (p *prefetcher) VisitMessage(m *proto.Message) {
 		e.Accept(v)
 	}
 
+	if m.IsExtend {
+		return
+	}
 	if err := p.ns.SetNode(m.Name, message, m.Position); err != nil {
 		v.errors <- err
 	}
