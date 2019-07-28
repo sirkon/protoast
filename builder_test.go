@@ -124,10 +124,15 @@ func (c copier) copyCat(k ast.Unique) ast.Unique {
 		for _, f := range v.Fields {
 			fields = append(fields, c.copyCat(f).(*ast.MessageField))
 		}
+		var types []ast.Type
+		for _, t := range v.Types {
+			types = append(types, c.copyType(t))
+		}
 		res.File = c.copyFile(v.File)
 		res.ParentMsg = c.copyMsg(v.ParentMsg)
 		res.Name = v.Name
 		res.Fields = fields
+		res.Types = types
 		return c[k]
 	case *ast.MessageField:
 		var res ast.MessageField
@@ -570,4 +575,70 @@ func TestNamespaces_Get(t *testing.T) {
 
 	require.Equal(t, "service.proto:7:1", nss.Position(serviceAST.Services[0]).String())
 	require.Equal(t, "service.proto:11:21", nss.PositionField(serviceAST.Services[0].Methods[1].Options[0].Values[0], &serviceAST.Services[0].Methods[1].Options[0].Values[0].Name).String())
+}
+
+func TestSubsample(t *testing.T) {
+	mapping := map[string]string{
+		"subsample.proto": "testdata/subsample.proto",
+	}
+	c := copier{}
+
+	files := NewFiles(mapping)
+	nss := NewBuilder(files, func(err error) {
+		t.Errorf("\r%s", err)
+	})
+	file, err := nss.AST("subsample.proto")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	subMessage := &ast.Message{
+		Name: "SubMessage",
+		Fields: []*ast.MessageField{
+			{
+				Name:     "field",
+				Sequence: 1,
+				Type:     &ast.String{},
+			},
+		},
+	}
+	subEnum := &ast.Enum{
+		Name: "SubEnum",
+		Values: []*ast.EnumValue{
+			{
+				Name:    "RESERVED",
+				Integer: 0,
+			},
+		},
+	}
+	sampleMessage := &ast.Message{
+		Name: "Message",
+		Fields: []*ast.MessageField{
+			{
+				Name:     "subMsg",
+				Sequence: 1,
+				Type:     subMessage,
+			},
+			{
+				Name:     "subEnum",
+				Sequence: 2,
+				Type:     subEnum,
+			},
+		},
+		Types: []ast.Type{
+			subMessage,
+			subEnum,
+		},
+	}
+	sampleFile := &ast.File{
+		Name:    "subsample.proto",
+		Package: "sample",
+		Types:   []ast.Type{sampleMessage},
+	}
+	sampleMessage.File = sampleFile
+	subMessage.File = sampleFile
+	subMessage.ParentMsg = sampleMessage
+	subEnum.ParentMsg = sampleMessage
+	subEnum.File = sampleFile
+	require.Equal(t, sampleFile, c.copyCat(file))
 }

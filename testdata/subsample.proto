@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package sample;
+
+message Message {
+    message SubMessage {
+        string field = 1;
+    }
+    enum SubEnum {
+        RESERVED = 0;
+    }
+
+    SubMessage subMsg = 1;
+    SubEnum subEnum = 2;
+}

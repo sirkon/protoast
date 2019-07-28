@@ -11,6 +11,7 @@ type Message struct {
 
 	Name   string
 	Fields []*MessageField
+	Types  []Type
 }
 
 func (*Message) genericType() {}

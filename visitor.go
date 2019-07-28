@@ -69,6 +69,7 @@ func (tv *typesVisitor) regFieldInfo(k ast.Unique, fieldAddr interface{}, commen
 func (tv *typesVisitor) VisitMessage(m *proto.Message) {
 	v := &typesVisitor{
 		ns:     tv.ns.WithScope(m.Name),
+		file:   tv.file,
 		nss:    tv.nss,
 		errors: tv.errors,
 	}
@@ -82,7 +83,9 @@ func (tv *typesVisitor) VisitMessage(m *proto.Message) {
 	v.msgCtx.item.File = tv.file
 	v.msgCtx.prevInteger = map[int]scanner.Position{}
 
-	tv.file.Types = append(tv.file.Types, msg)
+	if msg.ParentMsg == nil {
+		tv.file.Types = append(tv.file.Types, msg)
+	}
 
 	tv.regInfo(msg, m.Comment, m.Position)
 	tv.regFieldInfo(msg, &msg.Name, m.Comment, m.Position)
@@ -284,7 +287,9 @@ func (tv *typesVisitor) VisitEnum(e *proto.Enum) {
 		e.Accept(tv)
 	}
 
-	tv.file.Types = append(tv.file.Types, enum)
+	if enum.ParentMsg == nil {
+		tv.file.Types = append(tv.file.Types, enum)
+	}
 
 	tv.regInfo(enum, e.Comment, e.Position)
 	tv.regFieldInfo(enum, &enum.Name, nil, e.Position)

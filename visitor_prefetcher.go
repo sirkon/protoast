@@ -24,7 +24,11 @@ func (p *prefetcher) VisitMessage(m *proto.Message) {
 		File:      p.file,
 		Name:      m.Name,
 	}
+	if p.curMsg != nil {
+		p.curMsg.Types = append(p.curMsg.Types, message)
+	}
 	v := &prefetcher{
+		file:   p.file,
 		ns:     p.ns.WithScope(m.Name),
 		nss:    p.nss,
 		errors: p.errors,
@@ -38,7 +42,6 @@ func (p *prefetcher) VisitMessage(m *proto.Message) {
 	if err := p.ns.SetNode(m.Name, message, m.Position); err != nil {
 		v.errors <- err
 	}
-	p.curMsg = nil
 }
 
 func (p *prefetcher) VisitService(v *proto.Service) {}
@@ -75,6 +78,9 @@ func (p *prefetcher) VisitEnum(e *proto.Enum) {
 		File:      p.file,
 		Name:      e.Name,
 		Values:    nil,
+	}
+	if p.curMsg != nil {
+		p.curMsg.Types = append(p.curMsg.Types, enum)
 	}
 	if err := p.ns.SetNode(e.Name, enum, e.Position); err != nil {
 		p.errors <- err
