@@ -573,8 +573,8 @@ func TestNamespaces_Get(t *testing.T) {
 	}
 	require.Equal(t, serviceFile, c.copyCat(serviceAST))
 
-	require.Equal(t, "service.proto:7:1", nss.Position(serviceAST.Services[0]).String())
-	require.Equal(t, "service.proto:11:21", nss.PositionField(serviceAST.Services[0].Methods[1].Options[0].Values[0], &serviceAST.Services[0].Methods[1].Options[0].Values[0].Name).String())
+	require.Equal(t, "testdata/service.proto:7:1", nss.Position(serviceAST.Services[0]).String())
+	require.Equal(t, "testdata/service.proto:11:21", nss.PositionField(serviceAST.Services[0].Methods[1].Options[0].Values[0], &serviceAST.Services[0].Methods[1].Options[0].Values[0].Name).String())
 }
 
 func TestSubsample(t *testing.T) {
