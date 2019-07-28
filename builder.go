@@ -11,15 +11,16 @@ import (
 	"github.com/sirkon/protoast/internal/namespace"
 )
 
+// NewBuilder конструктор построителя AST-представления
 func NewBuilder(imports Files, errProcessing func(error)) *Builder {
-	return NewBuilderWithCustomNaming(imports, errProcessing, DefaultNaming)
+	return newBuilderWithCustomNaming(imports, errProcessing, defaultNaming)
 }
 
-func DefaultNaming(first, last string) string {
+func defaultNaming(first, last string) string {
 	return first + "::" + last
 }
 
-func NewBuilderWithCustomNaming(imports Files, errProcessing func(error), scopeNaming func(string, string) string) *Builder {
+func newBuilderWithCustomNaming(imports Files, errProcessing func(error), scopeNaming func(string, string) string) *Builder {
 	return &Builder{
 		protos: &protos{
 			files: imports,
@@ -33,7 +34,6 @@ func NewBuilderWithCustomNaming(imports Files, errProcessing func(error), scopeN
 		positions:     map[string]scanner.Position{},
 		uniqueContext: ast.UniqueContext{},
 	}
-
 }
 
 // StringRef создаёт ссылку на строку

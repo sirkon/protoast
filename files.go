@@ -10,6 +10,7 @@ import (
 // Files абстракция для работы с файлами
 type Files interface {
 	File(name string) ([]byte, error)
+	Abs(name string) (string, bool)
 }
 
 // NewFiles отдаёт реализацию Files
@@ -23,7 +24,11 @@ type files struct {
 	mapping map[string]string
 }
 
-// fileProto ...
+func (f *files) Abs(name string) (string, bool) {
+	res, ok := f.mapping[name]
+	return res, ok
+}
+
 func (f *files) File(path string) ([]byte, error) {
 	absPath, ok := f.mapping[path]
 	if !ok {

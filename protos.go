@@ -18,10 +18,14 @@ func (p *protos) fileProto(importPath string) (res *proto.Proto, err error) {
 	if err != nil {
 		return nil, errors.WithMessagef(err, "getting %s file data", importPath)
 	}
+	absPath, ok := p.files.Abs(importPath)
+	if ok {
+		return nil, errors.Errorf("couldn't find absolute path for import %s", importPath)
+	}
 	file := bytes.NewBuffer(fileData)
 
 	parser := proto.NewParser(file)
-	parser.Filename(importPath)
+	parser.Filename(absPath)
 
 	ast, err := parser.Parse()
 	if err != nil {
