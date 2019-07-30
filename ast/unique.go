@@ -44,15 +44,15 @@ func (k *unique) getUniqueKey() string {
 	return k.value
 }
 
-// SetKey устанавливает уникальное в рамках UniqueContext значение для данного Unique
-func SetKey(k Unique, ctx UniqueContext) {
+// SetUnique устанавливает уникальное в рамках UniqueContext значение для данного Unique
+func SetUnique(k Unique, ctx UniqueContext) {
 	if len(k.getUniqueKey()) == 0 {
 		k.setUniqueKey(ctx)
 	}
 }
 
-// GetKey получает ключ для данного k
-func GetKey(k Unique) string {
+// GetUnique получает ключ для данного k
+func GetUnique(k Unique) string {
 	return k.getUniqueKey()
 }
 
@@ -85,5 +85,5 @@ func GetFieldKey(k Unique, fieldAddr interface{}) string {
 	if len(name) == 0 {
 		panic(errors.Errorf("given pointer does not address any field in the given object"))
 	}
-	return fmt.Sprintf("%s::%s", GetKey(k), name)
+	return fmt.Sprintf("%s::%s", GetUnique(k), name)
 }

@@ -15,9 +15,9 @@ func TestGetFieldKey(t *testing.T) {
 	}
 
 	ctx := UniqueContext{}
-	SetKey(msg, ctx)
+	SetUnique(msg, ctx)
 
-	key := GetKey(msg)
+	key := GetUnique(msg)
 	require.Equal(t, key+"::Name", GetFieldKey(msg, &msg.Name))
 
 	require.Panics(t, func() {
@@ -39,9 +39,9 @@ func TestGetKey(t *testing.T) {
 	}
 	ctx := UniqueContext{}
 
-	SetKey(i32, ctx)
-	SetKey(msg, ctx)
+	SetUnique(i32, ctx)
+	SetUnique(msg, ctx)
 
-	require.NotEqual(t, GetKey(i32), GetKey(msg))
-	t.Log(GetKey(msg))
+	require.NotEqual(t, GetUnique(i32), GetUnique(msg))
+	t.Log(GetUnique(msg))
 }

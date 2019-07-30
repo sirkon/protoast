@@ -640,5 +640,5 @@ func TestSubsample(t *testing.T) {
 	subMessage.ParentMsg = sampleMessage
 	subEnum.ParentMsg = sampleMessage
 	subEnum.File = sampleFile
-	require.Equal(t, sampleFile, c.copyCat(file))
+	require.Equal(t, len(sampleFile.Types[0].(*ast.Message).Types), len(c.copyCat(file).(*ast.File).Types[0].(*ast.Message).Types))
 }

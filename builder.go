@@ -56,7 +56,7 @@ type Builder struct {
 
 // Comment возвращает комментарий для сущности реализующей Unique
 func (s *Builder) Comment(k ast.Unique) *ast.Comment {
-	return s.comments[ast.GetKey(k)]
+	return s.comments[ast.GetUnique(k)]
 }
 
 // CommentField возвращает комментарий для поля сущности реализующей Unique
@@ -66,7 +66,7 @@ func (s *Builder) CommentField(k ast.Unique, fieldAddr interface{}) *ast.Comment
 
 // Position возвращает позицию данного Unique
 func (s *Builder) Position(k ast.Unique) scanner.Position {
-	res, ok := s.positions[ast.GetKey(k)]
+	res, ok := s.positions[ast.GetUnique(k)]
 	if !ok {
 		panic(errors.Errorf("no position set for %T", k))
 	}

@@ -37,8 +37,8 @@ type typesVisitor struct {
 }
 
 func (tv *typesVisitor) regInfo(k ast.Unique, comment *proto.Comment, pos scanner.Position) {
-	ast.SetKey(k, tv.nss.uniqueContext)
-	key := ast.GetKey(k)
+	ast.SetUnique(k, tv.nss.uniqueContext)
+	key := ast.GetUnique(k)
 
 	if comment != nil {
 		cmt := &ast.Comment{
@@ -52,7 +52,7 @@ func (tv *typesVisitor) regInfo(k ast.Unique, comment *proto.Comment, pos scanne
 }
 
 func (tv *typesVisitor) regFieldInfo(k ast.Unique, fieldAddr interface{}, comment *proto.Comment, pos scanner.Position) {
-	ast.SetKey(k, tv.nss.uniqueContext)
+	ast.SetUnique(k, tv.nss.uniqueContext)
 	key := ast.GetFieldKey(k, fieldAddr)
 
 	if comment != nil {
@@ -67,33 +67,44 @@ func (tv *typesVisitor) regFieldInfo(k ast.Unique, fieldAddr interface{}, commen
 }
 
 func (tv *typesVisitor) VisitMessage(m *proto.Message) {
+	msg := &ast.Message{
+		File:      tv.file,
+		Name:      m.Name,
+		ParentMsg: tv.msgCtx.item,
+	}
+	tv.processDirectMessage(m, msg)
+	if m.IsExtend {
+		tv.file.Extensions = append(tv.file.Extensions, ast.MessageToExtension(msg))
+	}
+
+	realMsg := tv.ns.GetType(m.Name).(*ast.Message)
+	if realMsg == nil {
+		panic("internal error: message must be predeclared on the prefetch phase")
+	}
+	realMsg.Types = append(realMsg.Types, msg.Types...)
+	realMsg.Fields = append(realMsg.Fields, msg.Fields...)
+
+	if realMsg.ParentMsg == nil && !m.IsExtend {
+		tv.file.Types = append(tv.file.Types, realMsg)
+	}
+}
+
+func (tv *typesVisitor) processDirectMessage(m *proto.Message, msg *ast.Message) {
 	v := &typesVisitor{
 		ns:     tv.ns.WithScope(m.Name),
 		file:   tv.file,
 		nss:    tv.nss,
 		errors: tv.errors,
 	}
-
-	msg := tv.ns.GetType(m.Name).(*ast.Message)
-	if msg == nil {
-		panic("internal error: message must be predeclared on the prefetch phase")
-	}
 	v.msgCtx.item = msg
 	v.msgCtx.prevField = map[string]scanner.Position{}
 	v.msgCtx.item.File = tv.file
 	v.msgCtx.prevInteger = map[int]scanner.Position{}
-
-	if msg.ParentMsg == nil && !m.IsExtend {
-		tv.file.Types = append(tv.file.Types, msg)
-	}
-
 	tv.regInfo(msg, m.Comment, m.Position)
 	tv.regFieldInfo(msg, &msg.Name, m.Comment, m.Position)
-
 	for _, e := range m.Elements {
 		e.Accept(v)
 	}
-	v.msgCtx.item = nil
 }
 
 func (tv *typesVisitor) VisitService(v *proto.Service) {

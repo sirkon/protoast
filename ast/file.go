@@ -9,10 +9,11 @@ type File struct {
 	Name    string
 	Package string
 
-	Imports  []*Import
-	Types    []Type
-	Services []*Service
-	Options  []*Option
+	Imports    []*Import
+	Types      []Type
+	Extensions []*Extension
+	Services   []*Service
+	Options    []*Option
 }
 
 func (*File) node() {}
