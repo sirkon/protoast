@@ -74,7 +74,10 @@ func (tv *typesVisitor) VisitMessage(m *proto.Message) {
 	}
 	tv.processDirectMessage(m, msg)
 	if m.IsExtend {
-		tv.file.Extensions = append(tv.file.Extensions, ast.MessageToExtension(msg))
+		ext := ast.MessageToExtension(msg)
+		tv.regInfo(ext, m.Comment, m.Position)
+		tv.regFieldInfo(ext, &ext.Name, m.Comment, m.Position)
+		tv.file.Extensions = append(tv.file.Extensions, ext)
 	}
 
 	realMsg := tv.ns.GetType(m.Name).(*ast.Message)
@@ -87,6 +90,8 @@ func (tv *typesVisitor) VisitMessage(m *proto.Message) {
 	if realMsg.ParentMsg == nil && !m.IsExtend {
 		tv.file.Types = append(tv.file.Types, realMsg)
 	}
+	tv.regInfo(realMsg, m.Comment, m.Position)
+	tv.regFieldInfo(realMsg, &realMsg.Name, m.Comment, m.Position)
 }
 
 func (tv *typesVisitor) processDirectMessage(m *proto.Message, msg *ast.Message) {
@@ -100,8 +105,6 @@ func (tv *typesVisitor) processDirectMessage(m *proto.Message, msg *ast.Message)
 	v.msgCtx.prevField = map[string]scanner.Position{}
 	v.msgCtx.item.File = tv.file
 	v.msgCtx.prevInteger = map[int]scanner.Position{}
-	tv.regInfo(msg, m.Comment, m.Position)
-	tv.regFieldInfo(msg, &msg.Name, m.Comment, m.Position)
 	for _, e := range m.Elements {
 		e.Accept(v)
 	}

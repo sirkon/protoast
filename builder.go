@@ -1,6 +1,7 @@
 package protoast
 
 import (
+	"fmt"
 	"reflect"
 	"text/scanner"
 
@@ -67,8 +68,21 @@ func (s *Builder) CommentField(k ast.Unique, fieldAddr interface{}) *ast.Comment
 // Position возвращает позицию данного Unique
 func (s *Builder) Position(k ast.Unique) scanner.Position {
 	res, ok := s.positions[ast.GetUnique(k)]
+	var name string
+	switch v := k.(type) {
+	case *ast.Message:
+		name = fmt.Sprintf("message %s::%s.%s %s", v.File.Name, v.File.Package, v.Name, ast.GetUnique(k))
+	case *ast.Enum:
+		name = fmt.Sprintf("enum %s.%s", v.File.Package, v.Name)
+	case *ast.Service:
+		name = fmt.Sprintf("service %s.%s", v.File.Package, v.Name)
+	case *ast.Extension:
+		name = fmt.Sprintf("extension %s.%s", v.File.Package, v.Name)
+	default:
+		name = fmt.Sprintf("%T", v)
+	}
 	if !ok {
-		panic(errors.Errorf("no position set for %T", k))
+		panic(errors.New(name))
 	}
 	return res
 }
