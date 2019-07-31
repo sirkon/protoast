@@ -640,5 +640,69 @@ func TestSubsample(t *testing.T) {
 	subMessage.ParentMsg = sampleMessage
 	subEnum.ParentMsg = sampleMessage
 	subEnum.File = sampleFile
-	require.Equal(t, len(sampleFile.Types[0].(*ast.Message).Types), len(c.copyCat(file).(*ast.File).Types[0].(*ast.Message).Types))
+	require.Equal(t, sampleFile, c.copyCat(file))
+}
+
+func TestSubsample2(t *testing.T) {
+	mapping := map[string]string{
+		"subsample.proto": "testdata/subsample2.proto",
+	}
+	c := copier{}
+
+	files := NewFiles(mapping)
+	nss := NewBuilder(files, func(err error) {
+		t.Errorf("\r%s", err)
+	})
+	file, err := nss.AST("subsample.proto")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	subMessage := &ast.Message{
+		Name: "SubMessage",
+		Fields: []*ast.MessageField{
+			{
+				Name:     "field",
+				Sequence: 1,
+				Type:     &ast.String{},
+			},
+		},
+	}
+	subEnum := &ast.Enum{
+		Name: "SubEnum",
+		Values: []*ast.EnumValue{
+			{
+				Name:    "RESERVED",
+				Integer: 0,
+			},
+		},
+	}
+	sampleMessage := &ast.Message{
+		Name: "Message",
+		Fields: []*ast.MessageField{
+			{
+				Name:     "subMsg",
+				Sequence: 1,
+				Type:     subMessage,
+			},
+			{
+				Name:     "subEnum",
+				Sequence: 2,
+				Type:     subEnum,
+			},
+		},
+		Types: []ast.Type{
+			subEnum,
+		},
+	}
+	sampleFile := &ast.File{
+		Name:    "subsample.proto",
+		Package: "sample",
+		Types:   []ast.Type{subMessage, sampleMessage},
+	}
+	sampleMessage.File = sampleFile
+	subMessage.File = sampleFile
+	subEnum.ParentMsg = sampleMessage
+	subEnum.File = sampleFile
+	require.Equal(t, sampleFile, c.copyCat(file))
 }

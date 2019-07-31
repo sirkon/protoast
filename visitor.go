@@ -1,6 +1,7 @@
 package protoast
 
 import (
+	"strings"
 	"text/scanner"
 
 	"github.com/emicklei/proto"
@@ -193,8 +194,12 @@ func (tv *typesVisitor) VisitNormalField(i *proto.NormalField) {
 		t = tv.ns.GetType(i.Type)
 	}
 	if t == nil {
-		tv.errors <- errPosf(i.Position, "unknown type %s", i.Type)
-		return
+		if strings.HasPrefix(i.Type, tv.file.Package+".") {
+			t = tv.ns.GetType(i.Type[len(tv.file.Package)+1:])
+		} else {
+			tv.errors <- errPosf(i.Position, "unknown type %s", i.Type)
+			return
+		}
 	}
 	if i.Optional {
 		t = &ast.Optional{
