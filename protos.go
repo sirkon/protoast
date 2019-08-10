@@ -18,9 +18,9 @@ func (p *protos) fileProto(importPath string) (res *proto.Proto, err error) {
 	if err != nil {
 		return nil, errors.WithMessagef(err, "getting %s file data", importPath)
 	}
-	absPath, ok := p.files.Abs(importPath)
-	if !ok {
-		return nil, errors.Errorf("couldn't find absolute path for import %s", importPath)
+	absPath, err := p.files.Abs(importPath)
+	if err != nil {
+		return nil, errors.WithMessagef(err, "couldn't find absolute path for import %s", importPath)
 	}
 	file := bytes.NewBuffer(fileData)
 

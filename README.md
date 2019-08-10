@@ -27,3 +27,6 @@ log.Printf("%#v", ns.Comment(file.Services[0]))
 // returns position of the second service's name
 log.Printf("%#v", ns.Position(file.Service[1], &file.Service[1].Name))
 ```
+
+You can also use `protoast.NewFilesViaResolver` constructor to use a callback function instead of `map[string]string`
+to resolve import names.
