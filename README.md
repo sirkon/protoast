@@ -18,7 +18,7 @@ if err != nil {
 	log.Fatal(err)
 }
 
-// output AST of type Type defined in file.proto
+// output AST of the first service defined in file.proto
 log.Printf("%#v", file.Services[0])
 
 // returns comment for the first service in a file
