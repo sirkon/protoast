@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package map_value_type;
+
+message Value {
+    string msg = 1;
+    int32 code = 2;
+}
+
+message Struct {
+    map<string, Value> m = 1;
+    int32 total = 2;
+}

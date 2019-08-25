@@ -486,7 +486,7 @@ func (tv *typesVisitor) VisitMapField(f *proto.MapField) {
 	}
 	tv.regInfo(keyType, nil, f.Position)
 
-	valType := standardType(f.KeyType)
+	valType := standardType(f.Type)
 	if valType == nil {
 		valType = tv.ns.GetType(f.Type)
 		if valType == nil {

@@ -706,3 +706,63 @@ func TestSubsample2(t *testing.T) {
 	subEnum.File = sampleFile
 	require.Equal(t, sampleFile, c.copyCat(file))
 }
+
+func TestMapValueType(t *testing.T) {
+	const mapValueTypeName = "map-value-type.proto"
+	mapping := map[string]string{
+		mapValueTypeName: "testdata/map-value-type.proto",
+	}
+	c := copier{}
+	files := NewFiles(mapping)
+	nss := NewBuilder(files, func(err error) {
+		t.Errorf("\r%s", err)
+	})
+
+	file, err := nss.AST(mapValueTypeName)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	subType := &ast.Message{
+		Name: "Value",
+		Fields: []*ast.MessageField{
+			{
+				Name:     "msg",
+				Sequence: 1,
+				Type:     &ast.String{},
+			},
+			{
+				Name:     "code",
+				Sequence: 2,
+				Type:     &ast.Int32{},
+			},
+		},
+	}
+	expected := &ast.Message{
+		Name: "Struct",
+		Fields: []*ast.MessageField{
+			{
+				Name:     "m",
+				Sequence: 1,
+				Type: &ast.Map{
+					KeyType:   &ast.String{},
+					ValueType: subType,
+				},
+			},
+			{
+				Name:     "total",
+				Sequence: 2,
+				Type:     &ast.Int32{},
+			},
+		},
+	}
+	expectedFile := &ast.File{
+		Name:    mapValueTypeName,
+		Package: "map_value_type",
+		Types:   []ast.Type{subType, expected},
+	}
+	subType.File = expectedFile
+	expected.File = expectedFile
+
+	require.Equal(t, expectedFile, c.copyCat(file))
+}
