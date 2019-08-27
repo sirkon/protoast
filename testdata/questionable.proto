@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package sample;
+
+import "subsample.proto";
+
+message Questionable {
+    // This should be treated with a warning: SubMessage was made internal for a reason
+    sample.Message.SubMessage f = 1;
+}

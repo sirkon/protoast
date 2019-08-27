@@ -196,7 +196,8 @@ func (tv *typesVisitor) VisitNormalField(i *proto.NormalField) {
 	if t == nil {
 		if strings.HasPrefix(i.Type, tv.file.Package+".") {
 			t = tv.ns.GetType(i.Type[len(tv.file.Package)+1:])
-		} else {
+		}
+		if t == nil {
 			tv.errors <- errPosf(i.Position, "unknown type %s", i.Type)
 			return
 		}

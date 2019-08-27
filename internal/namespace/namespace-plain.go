@@ -1,6 +1,7 @@
 package namespace
 
 import (
+	"strings"
 	"text/scanner"
 
 	"github.com/pkg/errors"
@@ -9,26 +10,26 @@ import (
 )
 
 type nodeTuple struct {
-	item	ast.Node
-	pos	scanner.Position
+	item ast.Node
+	pos  scanner.Position
 }
 
 func newPlain(name string, builder *Builder) Namespace {
 	return &plain{
-		name:		name,
-		builder:	builder,
-		ns:		map[string]nodeTuple{},
+		name:    name,
+		builder: builder,
+		ns:      map[string]nodeTuple{},
 	}
 }
 
 type plain struct {
-	name	string
-	pkg	string
+	name string
+	pkg  string
 
-	builder	*Builder
-	ns	map[string]nodeTuple
+	builder *Builder
+	ns      map[string]nodeTuple
 
-	final	bool
+	final bool
 }
 
 func (n *plain) GetService(name string) *ast.Service {
@@ -44,7 +45,15 @@ func (n *plain) getNode(name string) (ast.Node, scanner.Position) {
 	var pos scanner.Position
 	res, ok := n.ns[name]
 	if !ok {
-		return nil, pos
+		items := strings.Split(name, ".")
+		if len(items) != 2 {
+			return nil, pos
+		}
+		ns := n.WithScope(items[0])
+		if ns == nil {
+			return nil, pos
+		}
+		return ns.getNode(items[1])
 	}
 
 	return res.item, res.pos
@@ -79,19 +88,19 @@ func (n *plain) SetNode(name string, def ast.Node, defPos scanner.Position) erro
 	}
 
 	n.ns[name] = nodeTuple{
-		item:	def,
-		pos:	defPos,
+		item: def,
+		pos:  defPos,
 	}
 	return nil
 }
 
-func (n *plain) Finalized() bool	{ return n.final }
-func (n *plain) Finalize()		{ n.final = true }
-func (n *plain) String() string		{ return n.name }
+func (n *plain) Finalized() bool { return n.final }
+func (n *plain) Finalize()       { n.final = true }
+func (n *plain) String() string  { return n.name }
 
 func (n *plain) SetPkgName(pkg string) error {
 	n.pkg = pkg
 	return nil
 }
 
-func (n *plain) PkgName() string	{ return n.pkg }
+func (n *plain) PkgName() string { return n.pkg }

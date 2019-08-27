@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/sirkon/protoast/ast"
@@ -765,4 +766,37 @@ func TestMapValueType(t *testing.T) {
 	expected.File = expectedFile
 
 	require.Equal(t, expectedFile, c.copyCat(file))
+}
+
+func TestQuestionable(t *testing.T) {
+	mapping := map[string]string{
+		"questionable.proto": "testdata/questionable.proto",
+		"subsample.proto":    "testdata/subsample.proto",
+	}
+	c := copier{}
+	files := NewFiles(mapping)
+	nss := NewBuilder(files, func(err error) {
+		t.Errorf("\r%s", err)
+	})
+
+	questionable, err := nss.AST("questionable.proto")
+	if err != nil {
+		t.Fatal(err)
+	}
+	subsample, err := nss.AST("subsample.proto")
+	if err != nil {
+		t.Fatal(err)
+	}
+	thisType := c.copyType(questionable.Types[0]).(*ast.Message)
+	thisType.File = nil
+	assert.Equal(t, &ast.Message{
+		Name: "Questionable",
+		Fields: []*ast.MessageField{
+			{
+				Name:     "f",
+				Sequence: 1,
+				Type:     c.copyType(subsample.Types[0].(*ast.Message).Types[0]),
+			},
+		},
+	}, thisType)
 }
