@@ -392,6 +392,12 @@ func (tv *typesVisitor) VisitReserved(r *proto.Reserved) {}
 
 func (tv *typesVisitor) VisitRPC(r *proto.RPC) {
 
+	rpc := &ast.Method{
+		File:    tv.file,
+		Service: tv.service,
+		Name:    r.Name,
+	}
+
 	req := tv.ns.GetType(r.RequestType)
 	if req == nil {
 		tv.errors <- errPosf(r.Position, "unknown type %s", r.RequestType)
@@ -402,7 +408,6 @@ func (tv *typesVisitor) VisitRPC(r *proto.RPC) {
 			Type: req,
 		}
 	}
-	tv.regInfo(req, nil, r.Position)
 
 	resp := tv.ns.GetType(r.ReturnsType)
 	if resp == nil {
@@ -414,7 +419,6 @@ func (tv *typesVisitor) VisitRPC(r *proto.RPC) {
 			Type: resp,
 		}
 	}
-	tv.regInfo(resp, nil, r.Position)
 
 	var mos []*ast.MethodOption
 	for _, o := range r.Options {
@@ -436,17 +440,15 @@ func (tv *typesVisitor) VisitRPC(r *proto.RPC) {
 		mos = append(mos, mo)
 	}
 
-	rpc := &ast.Method{
-		File:    tv.file,
-		Service: tv.service,
-		Name:    r.Name,
-		Input:   req,
-		Output:  resp,
-		Options: mos,
-	}
+	rpc.Input = req
+	rpc.Output = resp
+	rpc.Options = mos
+
 	tv.service.Methods = append(tv.service.Methods, rpc)
 	tv.regInfo(rpc, r.Comment, r.Position)
 	tv.regFieldInfo(rpc, &rpc.Name, nil, r.Position)
+	tv.regFieldInfo(rpc, &rpc.Input, nil, r.Position)
+	tv.regFieldInfo(rpc, &rpc.Output, nil, r.Position)
 
 	if err := tv.ns.SetNode(tv.service.Name+"::"+r.Name, rpc, r.Position); err != nil {
 		tv.errors <- errPosf(r.Position, "duplicate method %s in service %s", r.Name, tv.service.Name)
