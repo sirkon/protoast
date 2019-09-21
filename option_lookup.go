@@ -13,11 +13,11 @@ import (
 type optionType string
 
 const (
-	fileOptions    = "google.protobuf.FileOptions"
-	methodOptions  = "google.protobuf.MethodOptions"
-	messageOptions = "google.protobuf.MessageOptions"
-	enumOptions    = "google.protobuf.EnumValueOptions"
-	oneofOptions   = "google.protobuf.OneOfOptions"
+	fileOptions      = "google.protobuf.FileOptions"
+	methodOptions    = "google.protobuf.MethodOptions"
+	fieldOptions     = "google.protobuf.FieldOptions"
+	enumValueOptions = "google.protobuf.EnumValueOptions"
+	oneofOptions     = "google.protobuf.OneOfOptions"
 
 	// Теоретически есть и другие опции, но они не предоставляются парсером
 )
@@ -71,7 +71,7 @@ func (tv *typesVisitor) optionLookup(name string, pos scanner.Position, ot optio
 			}
 		}
 	}
-	tv.errors(errors.Errorf("%s unknown option (%s)", pos, name))
+	tv.errors(errors.Errorf("%s unknown option (%s, belong to %s)", pos, name, ot))
 	return nil
 }
 
@@ -87,9 +87,12 @@ var ignoreOpts = map[optionType]map[string]struct{}{
 		"cc_enable_arenas":     {},
 		"java_multiple_files":  {},
 	},
-	messageOptions: {
+	fieldOptions: {
 		"default":    {},
 		"deprecated": {},
 		"packed":     {},
+	},
+	enumValueOptions: {
+		"deprecated": {},
 	},
 }

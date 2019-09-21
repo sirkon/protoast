@@ -189,7 +189,7 @@ func (tv *typesVisitor) VisitNormalField(i *proto.NormalField) {
 		option := &ast.Option{
 			Name:      o.Name,
 			Value:     o.Constant.Source,
-			Extension: tv.optionLookup(o.Name, o.Position, messageOptions),
+			Extension: tv.optionLookup(o.Name, o.Position, fieldOptions),
 		}
 		options = append(options, option)
 		tv.regInfo(option, o.Comment, o.Position)
@@ -291,7 +291,7 @@ func (tv *typesVisitor) VisitEnumField(i *proto.EnumField) {
 		option := &ast.Option{
 			Name:      i.ValueOption.Name,
 			Value:     i.ValueOption.Constant.Source,
-			Extension: tv.optionLookup(i.ValueOption.Name, i.ValueOption.Position, enumOptions),
+			Extension: tv.optionLookup(i.ValueOption.Name, i.ValueOption.Position, enumValueOptions),
 		}
 		tv.regInfo(option, i.ValueOption.Comment, i.ValueOption.Position)
 		tv.regFieldInfo(option, &option.Name, nil, i.ValueOption.Position)
@@ -488,7 +488,7 @@ func (tv *typesVisitor) VisitMapField(f *proto.MapField) {
 		option := &ast.Option{
 			Name:      o.Name,
 			Value:     o.Constant.Source,
-			Extension: tv.optionLookup(o.Name, o.Position, messageOptions),
+			Extension: tv.optionLookup(o.Name, o.Position, fieldOptions),
 		}
 		tv.regInfo(option, o.Comment, o.Position)
 		tv.regFieldInfo(option, &option.Name, nil, o.Position)
