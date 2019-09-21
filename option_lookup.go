@@ -50,12 +50,17 @@ func (tv *typesVisitor) optionLookup(name string, pos scanner.Position, ot optio
 		}
 	}
 
+	files := make([]*ast.File, 1, len(tv.file.Imports)+1)
+	files[0] = tv.file
 	for _, imp := range tv.file.Imports {
-		if !fileFilter(imp.File) {
+		files = append(files, imp.File)
+	}
+	for _, file := range files {
+		if !fileFilter(file) {
 			continue
 		}
-		optionName := name[len(imp.File.Package)+1:]
-		for _, e := range imp.File.Extensions {
+		optionName := name[len(file.Package)+1:]
+		for _, e := range file.Extensions {
 			if e.Name != string(ot) {
 				continue
 			}
