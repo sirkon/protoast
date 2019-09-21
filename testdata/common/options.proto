@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package common;
+
+option java_package = "com.ncloudtech.grpc.gen.common";
+
+import "google/protobuf/descriptor.proto";
+
+message Option {
+    int32  status  = 1;
+    string message = 2;
+}
+
+message AnotherOption {
+    string option = 1;
+}
+
+extend google.protobuf.MethodOptions {
+    Option option = 635409;
+    AnotherOption another_option = 638481;
+}
+
+extend google.protobuf.EnumValueOptions {
+    uint32 http_status = 102032132;
+}

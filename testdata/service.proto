@@ -3,6 +3,7 @@ syntax = "proto3";
 package sample;
 
 import "sample.proto";
+import "common/options.proto";
 
 service Service {
     rpc Method1(Simple) returns (Response);

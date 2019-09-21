@@ -53,6 +53,7 @@ type Builder struct {
 	comments      map[string]*ast.Comment
 	positions     map[string]scanner.Position
 	uniqueContext ast.UniqueContext
+	errCount      int
 }
 
 // Comment возвращает комментарий для сущности реализующей Unique
@@ -154,14 +155,14 @@ func (s *Builder) processFile(ns namespace.Namespace, p *proto.Proto, importPath
 		},
 		ns:     ns,
 		nss:    s,
-		errors: errChan,
+		errors: s.processError,
 	}
 
 	v := typesVisitor{
 		file:   pf.file,
 		ns:     ns,
 		nss:    s,
-		errors: errChan,
+		errors: s.errProcessing,
 		enumCtx: struct {
 			item        *ast.Enum
 			prevField   map[string]scanner.Position
@@ -176,14 +177,6 @@ func (s *Builder) processFile(ns namespace.Namespace, p *proto.Proto, importPath
 		oneOf: nil,
 	}
 
-	var errCount int
-	go func() {
-		for err := range errChan {
-			s.errProcessing(err)
-			errCount++
-		}
-	}()
-
 	p.Accept(&pf)
 	p.Accept(&v)
 	close(errChan)
@@ -191,12 +184,19 @@ func (s *Builder) processFile(ns namespace.Namespace, p *proto.Proto, importPath
 	s.asts[importPath] = v.file
 	s.finalNses[importPath] = v.ns
 
-	switch errCount {
+	switch s.errCount {
 	case 0:
 		return nil
 	case 1:
 		return errors.New("an error occured")
 	default:
-		return errors.Errorf("%d errors occured", errCount)
+		return errors.Errorf("%d errors occured", s.errCount)
 	}
+}
+
+func (s *Builder) processError(err error) {
+	if err != nil {
+		s.errCount++
+	}
+	s.errProcessing(err)
 }

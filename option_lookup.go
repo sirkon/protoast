@@ -1,0 +1,90 @@
+package protoast
+
+import (
+	"path"
+	"strings"
+	"text/scanner"
+
+	"github.com/pkg/errors"
+
+	"github.com/sirkon/protoast/ast"
+)
+
+type optionType string
+
+const (
+	fileOptions    = "google.protobuf.FileOptions"
+	methodOptions  = "google.protobuf.MethodOptions"
+	messageOptions = "google.protobuf.MessageOptions"
+	enumOptions    = "google.protobuf.EnumValueOptions"
+	oneofOptions   = "google.protobuf.OneOfOptions"
+
+	// Теоретически есть и другие опции, но они не предоставляются парсером
+)
+
+func (tv *typesVisitor) optionLookup(name string, pos scanner.Position, ot optionType) *ast.Extension {
+	if strings.HasPrefix(name, "(") {
+		name = name[1:]
+	}
+	if strings.HasSuffix(name, ")") {
+		name = name[:len(name)-1]
+	}
+	if d, ok := ignoreOpts[ot]; ok {
+		if _, ok := d[name]; ok {
+			return nil
+		}
+	}
+
+	var fileFilter func(*ast.File) bool
+	if !strings.ContainsRune(name, '.') {
+		// ищем только среди файлов лежащих в данной директории и имеющих одинаковое имя пакета
+		base, _ := path.Split(tv.file.Name)
+		fileFilter = func(file *ast.File) bool {
+			fBase, _ := path.Split(file.Name)
+			return fBase == base && file.Package == tv.file.Package
+		}
+		name = tv.file.Package + "." + name
+	} else {
+		fileFilter = func(file *ast.File) bool {
+			return strings.HasPrefix(name, file.Package)
+		}
+	}
+
+	for _, imp := range tv.file.Imports {
+		if !fileFilter(imp.File) {
+			continue
+		}
+		optionName := name[len(imp.File.Package)+1:]
+		for _, e := range imp.File.Extensions {
+			if e.Name != string(ot) {
+				continue
+			}
+			for _, f := range e.Fields {
+				if optionName == f.Name {
+					return e
+				}
+			}
+		}
+	}
+	tv.errors(errors.Errorf("%s unknown option (%s)", pos, name))
+	return nil
+}
+
+// options to
+var ignoreOpts = map[optionType]map[string]struct{}{
+	fileOptions: {
+		"optimize_for":         {},
+		"go_package":           {},
+		"java_package":         {},
+		"java_outer_classname": {},
+		"csharp_namespace":     {},
+		"objc_class_prefix":    {},
+		"cc_enable_arenas":     {},
+		"java_multiple_files":  {},
+	},
+	messageOptions: {
+		"default":    {},
+		"deprecated": {},
+		"packed":     {},
+	},
+}

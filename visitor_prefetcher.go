@@ -16,7 +16,7 @@ type prefetcher struct {
 	nss    *Builder
 	curMsg *ast.Message
 
-	errors chan<- error
+	errors func(err error)
 }
 
 func (p *prefetcher) VisitMessage(m *proto.Message) {
@@ -24,13 +24,13 @@ func (p *prefetcher) VisitMessage(m *proto.Message) {
 	if m.IsExtend {
 		msg := p.ns.GetType(m.Name)
 		if msg == nil {
-			p.errors <- errors.Errorf("%s failed to find type %s to extend", m.Position, m.Name)
+			p.errors(errors.Errorf("%s failed to find type %s to extend", m.Position, m.Name))
 			return
 		}
 		var ok bool
 		message, ok = msg.(*ast.Message)
 		if !ok {
-			p.errors <- errors.Errorf("%s type %s turned to be not a message (%T)", m.Position, m.Name, msg)
+			p.errors(errors.Errorf("%s type %s turned to be not a message (%T)", m.Position, m.Name, msg))
 		}
 	} else {
 		message = &ast.Message{
@@ -58,7 +58,7 @@ func (p *prefetcher) VisitMessage(m *proto.Message) {
 		return
 	}
 	if err := p.ns.SetNode(m.Name, message, m.Position); err != nil {
-		v.errors <- err
+		v.errors(err)
 	}
 }
 
@@ -68,7 +68,7 @@ func (p *prefetcher) VisitSyntax(s *proto.Syntax)   {}
 func (p *prefetcher) VisitPackage(pkg *proto.Package) {
 	p.file.Package = pkg.Name
 	if err := p.ns.SetPkgName(pkg.Name); err != nil {
-		p.errors <- err
+		p.errors(err)
 	}
 }
 
@@ -77,13 +77,13 @@ func (p *prefetcher) VisitOption(o *proto.Option) {}
 func (p *prefetcher) VisitImport(i *proto.Import) {
 	ins, _, err := p.nss.get(i.Filename)
 	if err != nil {
-		p.errors <- errPosf(i.Position, "reading import %s: %s", i.Filename, err)
+		p.errors(errPosf(i.Position, "reading import %s: %s", i.Filename, err))
 		return
 	}
 
 	p.ns, err = p.ns.WithImport(ins)
 	if err != nil {
-		p.errors <- errPos(i.Position, err)
+		p.errors(errPos(i.Position, err))
 	}
 }
 
@@ -101,7 +101,7 @@ func (p *prefetcher) VisitEnum(e *proto.Enum) {
 		p.curMsg.Types = append(p.curMsg.Types, enum)
 	}
 	if err := p.ns.SetNode(e.Name, enum, e.Position); err != nil {
-		p.errors <- err
+		p.errors(err)
 	}
 }
 

@@ -34,6 +34,13 @@ func (c copier) copyMsg(m *ast.Message) *ast.Message {
 	return c.copyCat(m).(*ast.Message)
 }
 
+func (c copier) copyExt(e *ast.Extension) *ast.Extension {
+	if e == nil {
+		return nil
+	}
+	return c.copyCat(e).(*ast.Extension)
+}
+
 func (c copier) copyFile(f *ast.File) *ast.File {
 	if f == nil {
 		return f
@@ -48,7 +55,9 @@ func (c copier) copyCat(k ast.Unique) ast.Unique {
 	}
 	switch v := k.(type) {
 	case *ast.Any:
-		return &ast.Any{}
+		return &ast.Any{
+			File: c.copyFile(v.File),
+		}
 	case *ast.Bool:
 		return &ast.Bool{}
 	case *ast.Bytes:
@@ -108,6 +117,7 @@ func (c copier) copyCat(k ast.Unique) ast.Unique {
 	case *ast.Import:
 		return &ast.Import{
 			Path: v.Path,
+			File: c.copyFile(v.File),
 		}
 	case *ast.Int32:
 		return &ast.Int32{}
@@ -134,6 +144,31 @@ func (c copier) copyCat(k ast.Unique) ast.Unique {
 		res.Name = v.Name
 		res.Fields = fields
 		res.Types = types
+		return c[k]
+	case *ast.Extension:
+		var res ast.Extension
+		c[k] = &res
+		var fields []*ast.ExtensionField
+		for _, f := range v.Fields {
+			fields = append(fields, c.copyCat(f).(*ast.ExtensionField))
+		}
+		var types []ast.Type
+		for _, t := range v.Types {
+			types = append(types, c.copyType(t))
+		}
+		res.File = c.copyFile(v.File)
+		res.ParentMsg = c.copyMsg(v.ParentMsg)
+		res.Name = v.Name
+		res.Fields = fields
+		res.Types = types
+		return c[k]
+	case *ast.ExtensionField:
+		var res ast.ExtensionField
+		c[k] = &res
+		res.Name = v.Name
+		res.Sequence = v.Sequence
+		res.Type = c.copyType(v.Type)
+		res.Options = c.copyOptions(v.Options)
 		return c[k]
 	case *ast.MessageField:
 		var res ast.MessageField
@@ -168,6 +203,7 @@ func (c copier) copyCat(k ast.Unique) ast.Unique {
 		}
 		res.Name = v.Name
 		res.Values = movs
+		res.Extension = c.copyExt(v.Extension)
 		return c[k]
 	case *ast.MethodOptionValue:
 		return &ast.MethodOptionValue{
@@ -196,8 +232,9 @@ func (c copier) copyCat(k ast.Unique) ast.Unique {
 		return c[k]
 	case *ast.Option:
 		return &ast.Option{
-			Name:  v.Name,
-			Value: v.Value,
+			Name:      v.Name,
+			Value:     v.Value,
+			Extension: c.copyExt(v.Extension),
 		}
 	case *ast.Optional:
 		return &ast.Optional{
@@ -244,11 +281,13 @@ func (c copier) copyCat(k ast.Unique) ast.Unique {
 
 func TestNamespaces_Get(t *testing.T) {
 	mapping := map[string]string{
-		"errors.proto":              "testdata/errors.proto",
-		"sample.proto":              "testdata/sample.proto",
-		"service.proto":             "testdata/service.proto",
-		"users.proto":               "testdata/users.proto",
-		"google/protobuf/any.proto": "testdata/google/protobuf/any.proto",
+		"errors.proto":                     "testdata/errors.proto",
+		"sample.proto":                     "testdata/sample.proto",
+		"service.proto":                    "testdata/service.proto",
+		"users.proto":                      "testdata/users.proto",
+		"google/protobuf/any.proto":        "testdata/google/protobuf/any.proto",
+		"google/protobuf/descriptor.proto": "testdata/google/protobuf/descriptor.proto",
+		"common/options.proto":             "testdata/common/options.proto",
 	}
 	c := copier{}
 
@@ -263,6 +302,10 @@ func TestNamespaces_Get(t *testing.T) {
 	require.Equal(t, ns.GetType("dos not exist"), nil)
 
 	simpleType := ns.GetType("Simple").(*ast.Message)
+	anyFile, err := nss.AST("google/protobuf/any.proto")
+	if err != nil {
+		t.Error(err)
+	}
 	sampleSimpleMessage := &ast.Message{
 		File: c.copyFile(simpleType.File),
 		Name: "Simple",
@@ -270,7 +313,9 @@ func TestNamespaces_Get(t *testing.T) {
 			{
 				Name:     "anyField",
 				Sequence: 1,
-				Type:     &ast.Any{},
+				Type: &ast.Any{
+					File: c.copyFile(anyFile),
+				},
 			},
 			{
 				Name:     "boolField",
@@ -473,12 +518,21 @@ func TestNamespaces_Get(t *testing.T) {
 		Imports: []*ast.Import{
 			{
 				Path: "errors.proto",
+				File: c.copyFile(errorsFile),
 			},
 			{
 				Path: "users.proto",
+				File: c.copyFile(func() *ast.File {
+					res, err := nss.AST("users.proto")
+					if err != nil {
+						t.Fatal(err)
+					}
+					return c.copyFile(res)
+				}()),
 			},
 			{
 				Path: "google/protobuf/any.proto",
+				File: c.copyFile(anyFile),
 			},
 		},
 		Types: []ast.Type{sampleSimpleMessage, sampleEnum, sampleResponse},
@@ -493,6 +547,12 @@ func TestNamespaces_Get(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	optionsFile, err := nss.AST("common/options.proto")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ext := optionsFile.Extensions[0]
 
 	srv := ns.GetService("Service")
 	require.NotNil(t, srv)
@@ -529,6 +589,7 @@ func TestNamespaces_Get(t *testing.T) {
 								Value: "OK",
 							},
 						},
+						Extension: c.copyExt(ext),
 					},
 					{
 						Name: "(common.another_option)",
@@ -538,6 +599,7 @@ func TestNamespaces_Get(t *testing.T) {
 								Value: "option",
 							},
 						},
+						Extension: c.copyExt(ext),
 					},
 				},
 			},
@@ -556,7 +618,7 @@ func TestNamespaces_Get(t *testing.T) {
 				Output:  &ast.Stream{Type: c.copyType(responseType)},
 			}},
 	}
-	require.Equal(t, sampleService, c.copyCat(srvSample))
+	require.Equal(t, sampleService, srvSample)
 
 	serviceFile := &ast.File{
 		Name:    "service.proto",
@@ -564,6 +626,11 @@ func TestNamespaces_Get(t *testing.T) {
 		Imports: []*ast.Import{
 			{
 				Path: "sample.proto",
+				File: sampleFile,
+			},
+			{
+				Path: "common/options.proto",
+				File: c.copyFile(optionsFile),
 			},
 		},
 		Services: []*ast.Service{sampleService},
@@ -572,10 +639,10 @@ func TestNamespaces_Get(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	require.Equal(t, serviceFile, c.copyCat(serviceAST))
+	require.Equal(t, serviceFile, c.copyFile(serviceAST))
 
-	require.Equal(t, "testdata/service.proto:7:1", nss.Position(serviceAST.Services[0]).String())
-	require.Equal(t, "testdata/service.proto:11:21", nss.PositionField(serviceAST.Services[0].Methods[1].Options[0].Values[0], &serviceAST.Services[0].Methods[1].Options[0].Values[0].Name).String())
+	require.Equal(t, "testdata/service.proto:8:1", nss.Position(serviceAST.Services[0]).String())
+	require.Equal(t, "testdata/service.proto:12:21", nss.PositionField(serviceAST.Services[0].Methods[1].Options[0].Values[0], &serviceAST.Services[0].Methods[1].Options[0].Values[0].Name).String())
 }
 
 func TestSubsample(t *testing.T) {

@@ -18,7 +18,7 @@ func (*Enum) node()        {}
 
 var _ Unique = &EnumValue{}
 
-// EnumValue представление поля
+// EnumValue представление поля для Enum-а
 type EnumValue struct {
 	unique
 

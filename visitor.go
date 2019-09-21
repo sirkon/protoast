@@ -5,6 +5,7 @@ import (
 	"text/scanner"
 
 	"github.com/emicklei/proto"
+	"github.com/pkg/errors"
 
 	"github.com/sirkon/protoast/ast"
 	"github.com/sirkon/protoast/internal/namespace"
@@ -17,7 +18,7 @@ type typesVisitor struct {
 	ns   namespace.Namespace
 	nss  *Builder
 
-	errors chan<- error
+	errors func(err error)
 
 	enumCtx struct {
 		item        *ast.Enum
@@ -121,7 +122,7 @@ func (tv *typesVisitor) VisitService(v *proto.Service) {
 		e.Accept(tv)
 	}
 	if err := tv.ns.SetNode(v.Name, tv.service, v.Position); err != nil {
-		tv.errors <- err
+		tv.errors(err)
 	}
 	tv.file.Services = append(tv.file.Services, tv.service)
 	tv.regInfo(tv.service, v.Comment, v.Position)
@@ -133,14 +134,15 @@ func (tv *typesVisitor) VisitSyntax(s *proto.Syntax) {}
 func (tv *typesVisitor) VisitPackage(p *proto.Package) {
 	tv.file.Package = p.Name
 	if err := tv.ns.SetPkgName(p.Name); err != nil {
-		tv.errors <- err
+		tv.errors(err)
 	}
 	tv.regFieldInfo(tv.file, &tv.file.Package, p.Comment, p.Position)
 }
 func (tv *typesVisitor) VisitOption(o *proto.Option) {
 	option := &ast.Option{
-		Name:  o.Name,
-		Value: o.Constant.Source,
+		Name:      o.Name,
+		Value:     o.Constant.Source,
+		Extension: tv.optionLookup(o.Name, o.Position, fileOptions),
 	}
 	tv.file.Options = append(tv.file.Options, option)
 	tv.regInfo(option, o.Comment, o.Position)
@@ -151,16 +153,21 @@ func (tv *typesVisitor) VisitOption(o *proto.Option) {
 func (tv *typesVisitor) VisitImport(i *proto.Import) {
 	importNs, _, err := tv.nss.get(i.Filename)
 	if err != nil {
-		tv.errors <- errPosf(i.Position, "reading import %s: %s", i.Filename, err)
+		tv.errors(errPosf(i.Position, "reading import %s: %s", i.Filename, err))
 		return
+	}
+	importFile, err := tv.nss.AST(i.Filename)
+	if err != nil {
+		tv.errors(errPosf(i.Position, "reading import %s: %s", i.Filename, err))
 	}
 
 	tv.ns, err = tv.ns.WithImport(importNs)
 	if err != nil {
-		tv.errors <- errPos(i.Position, err)
+		tv.errors(errPos(i.Position, err))
 	}
 	imp := &ast.Import{
 		Path: i.Filename,
+		File: importFile,
 	}
 	tv.file.Imports = append(tv.file.Imports, imp)
 	tv.regInfo(imp, i.Comment, i.Position)
@@ -169,10 +176,10 @@ func (tv *typesVisitor) VisitImport(i *proto.Import) {
 
 func (tv *typesVisitor) VisitNormalField(i *proto.NormalField) {
 	if prev, ok := tv.msgCtx.prevField[i.Name]; ok {
-		tv.errors <- errPosf(i.Position, "duplicate field %s, the previous definition was in %s", i.Name, prev)
+		tv.errors(errPosf(i.Position, "duplicate field %s, the previous definition was in %s", i.Name, prev))
 	}
 	if prev, ok := tv.msgCtx.prevInteger[i.Sequence]; ok {
-		tv.errors <- errPosf(i.Position, "duplicate field sequence %d, the previous valuy was in %s", i.Sequence, prev)
+		tv.errors(errPosf(i.Position, "duplicate field sequence %d, the previous valuy was in %s", i.Sequence, prev))
 	}
 	tv.msgCtx.prevField[i.Name] = i.Position
 	tv.msgCtx.prevInteger[i.Sequence] = i.Position
@@ -180,8 +187,9 @@ func (tv *typesVisitor) VisitNormalField(i *proto.NormalField) {
 	var options []*ast.Option
 	for _, o := range i.Options {
 		option := &ast.Option{
-			Name:  o.Name,
-			Value: o.Constant.Source,
+			Name:      o.Name,
+			Value:     o.Constant.Source,
+			Extension: tv.optionLookup(o.Name, o.Position, messageOptions),
 		}
 		options = append(options, option)
 		tv.regInfo(option, o.Comment, o.Position)
@@ -189,7 +197,7 @@ func (tv *typesVisitor) VisitNormalField(i *proto.NormalField) {
 		tv.regFieldInfo(option, &option.Value, nil, o.Constant.Position)
 	}
 
-	t := standardType(i.Type)
+	t := tv.standardType(i.Type)
 	if t == nil {
 		t = tv.ns.GetType(i.Type)
 	}
@@ -198,7 +206,7 @@ func (tv *typesVisitor) VisitNormalField(i *proto.NormalField) {
 			t = tv.ns.GetType(i.Type[len(tv.file.Package)+1:])
 		}
 		if t == nil {
-			tv.errors <- errPosf(i.Position, "unknown type %s", i.Type)
+			tv.errors(errPosf(i.Position, "unknown type %s", i.Type))
 			return
 		}
 	}
@@ -225,12 +233,18 @@ func (tv *typesVisitor) VisitNormalField(i *proto.NormalField) {
 	tv.msgCtx.item.Fields = append(tv.msgCtx.item.Fields, field)
 }
 
-func standardType(typeName string) ast.Type {
+func (tv *typesVisitor) standardType(typeName string) ast.Type {
 	switch typeName {
 	case "bool":
 		return &ast.Bool{}
 	case "google.protobuf.Any":
-		return &ast.Any{}
+		file, err := tv.nss.AST("google/protobuf/any.proto")
+		if err != nil {
+			tv.errors(errors.WithMessage(err, "google.protobuf.Any must have google/protobuf/any.proto import"))
+		}
+		return &ast.Any{
+			File: file,
+		}
 	case "bytes":
 		return &ast.Bytes{}
 	case "fixed32":
@@ -265,18 +279,19 @@ func standardType(typeName string) ast.Type {
 
 func (tv *typesVisitor) VisitEnumField(i *proto.EnumField) {
 	if prev, ok := tv.enumCtx.prevField[i.Name]; ok {
-		tv.errors <- errPosf(i.Position, "duplicate enum field %s, the previous definition was in %s", i.Name, prev)
+		tv.errors(errPosf(i.Position, "duplicate enum field %s, the previous definition was in %s", i.Name, prev))
 	}
 	if prev, ok := tv.enumCtx.prevInteger[i.Integer]; ok {
-		tv.errors <- errPosf(i.Position, "duplicate enum field id %d, the previous field with the same id was in %s", i.Integer, prev)
+		tv.errors(errPosf(i.Position, "duplicate enum field id %d, the previous field with the same id was in %s", i.Integer, prev))
 	}
 	tv.enumCtx.prevField[i.Name] = i.Position
 	tv.enumCtx.prevInteger[i.Integer] = i.Position
 	var options []*ast.Option
 	if i.ValueOption != nil {
 		option := &ast.Option{
-			Name:  i.ValueOption.Name,
-			Value: i.ValueOption.Constant.Source,
+			Name:      i.ValueOption.Name,
+			Value:     i.ValueOption.Constant.Source,
+			Extension: tv.optionLookup(i.ValueOption.Name, i.ValueOption.Position, enumOptions),
 		}
 		tv.regInfo(option, i.ValueOption.Comment, i.ValueOption.Position)
 		tv.regFieldInfo(option, &option.Name, nil, i.ValueOption.Position)
@@ -319,7 +334,7 @@ func (tv *typesVisitor) VisitComment(e *proto.Comment) {}
 
 func (tv *typesVisitor) VisitOneof(o *proto.Oneof) {
 	if prev, ok := tv.msgCtx.prevField[o.Name]; ok {
-		tv.errors <- errPosf(o.Position, "duplicate field %s, the previous definition was in %s", o.Name, prev)
+		tv.errors(errPosf(o.Position, "duplicate field %s, the previous definition was in %s", o.Name, prev))
 	}
 	tv.msgCtx.prevField[o.Name] = o.Position
 
@@ -346,10 +361,10 @@ func (tv *typesVisitor) VisitOneof(o *proto.Oneof) {
 
 func (tv *typesVisitor) VisitOneofField(o *proto.OneOfField) {
 	if prev, ok := tv.msgCtx.prevField[o.Name]; ok {
-		tv.errors <- errPosf(o.Position, "duplicate field %s, the previous definition was in %s", o.Name, prev)
+		tv.errors(errPosf(o.Position, "duplicate field %s, the previous definition was in %s", o.Name, prev))
 	}
 	if prev, ok := tv.msgCtx.prevInteger[o.Sequence]; ok {
-		tv.errors <- errPosf(o.Position, "duplicate field sequence %d, the previous valuy was in %s", o.Sequence, prev)
+		tv.errors(errPosf(o.Position, "duplicate field sequence %d, the previous valuy was in %s", o.Sequence, prev))
 	}
 	tv.msgCtx.prevField[o.Name] = o.Position
 	tv.msgCtx.prevInteger[o.Sequence] = o.Position
@@ -357,8 +372,9 @@ func (tv *typesVisitor) VisitOneofField(o *proto.OneOfField) {
 	var options []*ast.Option
 	for _, o := range o.Options {
 		option := &ast.Option{
-			Name:  o.Name,
-			Value: o.Constant.Source,
+			Name:      o.Name,
+			Value:     o.Constant.Source,
+			Extension: tv.optionLookup(o.Name, o.Position, oneofOptions),
 		}
 		options = append(options, option)
 		tv.regInfo(option, o.Comment, o.Position)
@@ -366,13 +382,13 @@ func (tv *typesVisitor) VisitOneofField(o *proto.OneOfField) {
 		tv.regFieldInfo(option, &option.Value, nil, o.Constant.Position)
 	}
 
-	t := standardType(o.Type)
+	t := tv.standardType(o.Type)
 	if t == nil {
 		t = tv.ns.GetType(o.Type)
 	}
 	tv.regInfo(t, nil, o.Position)
 	if t == nil {
-		tv.errors <- errPosf(o.Position, "unknown type %s", o.Type)
+		tv.errors(errPosf(o.Position, "unknown type %s", o.Type))
 		return
 	}
 	b := &ast.OneOfBranch{
@@ -400,7 +416,7 @@ func (tv *typesVisitor) VisitRPC(r *proto.RPC) {
 
 	req := tv.ns.GetType(r.RequestType)
 	if req == nil {
-		tv.errors <- errPosf(r.Position, "unknown type %s", r.RequestType)
+		tv.errors(errPosf(r.Position, "unknown type %s", r.RequestType))
 		return
 	}
 	if r.StreamsRequest {
@@ -411,7 +427,7 @@ func (tv *typesVisitor) VisitRPC(r *proto.RPC) {
 
 	resp := tv.ns.GetType(r.ReturnsType)
 	if resp == nil {
-		tv.errors <- errPosf(r.Position, "unknown type %s", r.RequestType)
+		tv.errors(errPosf(r.Position, "unknown type %s", r.RequestType))
 		return
 	}
 	if r.StreamsReturns {
@@ -423,7 +439,8 @@ func (tv *typesVisitor) VisitRPC(r *proto.RPC) {
 	var mos []*ast.MethodOption
 	for _, o := range r.Options {
 		mo := &ast.MethodOption{
-			Name: o.Name,
+			Name:      o.Name,
+			Extension: tv.optionLookup(o.Name, o.Position, methodOptions),
 		}
 		tv.regInfo(mo, o.Comment, o.Position)
 		tv.regFieldInfo(mo, &mo.Name, nil, o.Position)
@@ -451,17 +468,17 @@ func (tv *typesVisitor) VisitRPC(r *proto.RPC) {
 	tv.regFieldInfo(rpc, &rpc.Output, nil, r.Position)
 
 	if err := tv.ns.SetNode(tv.service.Name+"::"+r.Name, rpc, r.Position); err != nil {
-		tv.errors <- errPosf(r.Position, "duplicate method %s in service %s", r.Name, tv.service.Name)
+		tv.errors(errPosf(r.Position, "duplicate method %s in service %s", r.Name, tv.service.Name))
 		return
 	}
 }
 
 func (tv *typesVisitor) VisitMapField(f *proto.MapField) {
 	if prev, ok := tv.msgCtx.prevField[f.Name]; ok {
-		tv.errors <- errPosf(f.Position, "duplicate field %s, the previous definition was in %s", f.Name, prev)
+		tv.errors(errPosf(f.Position, "duplicate field %s, the previous definition was in %s", f.Name, prev))
 	}
 	if prev, ok := tv.msgCtx.prevInteger[f.Sequence]; ok {
-		tv.errors <- errPosf(f.Position, "duplicate field sequence %d, the previous valuy was in %s", f.Sequence, prev)
+		tv.errors(errPosf(f.Position, "duplicate field sequence %d, the previous valuy was in %s", f.Sequence, prev))
 	}
 	tv.msgCtx.prevField[f.Name] = f.Position
 	tv.msgCtx.prevInteger[f.Sequence] = f.Position
@@ -469,8 +486,9 @@ func (tv *typesVisitor) VisitMapField(f *proto.MapField) {
 	var options []*ast.Option
 	for _, o := range f.Options {
 		option := &ast.Option{
-			Name:  o.Name,
-			Value: o.Constant.Source,
+			Name:      o.Name,
+			Value:     o.Constant.Source,
+			Extension: tv.optionLookup(o.Name, o.Position, messageOptions),
 		}
 		tv.regInfo(option, o.Comment, o.Position)
 		tv.regFieldInfo(option, &option.Name, nil, o.Position)
@@ -478,22 +496,22 @@ func (tv *typesVisitor) VisitMapField(f *proto.MapField) {
 		options = append(options, option)
 	}
 
-	keyRawType := standardType(f.KeyType)
+	keyRawType := tv.standardType(f.KeyType)
 	if keyRawType == nil {
-		tv.errors <- errPosf(f.Position, "invalid map key type %s", f.Type)
+		tv.errors(errPosf(f.Position, "invalid map key type %s", f.Type))
 		return
 	}
 	keyType, isHashable := keyRawType.(ast.Hashable)
 	if !isHashable {
-		tv.errors <- errPosf(f.Position, "invalid map key type %s", f.Type)
+		tv.errors(errPosf(f.Position, "invalid map key type %s", f.Type))
 	}
 	tv.regInfo(keyType, nil, f.Position)
 
-	valType := standardType(f.Type)
+	valType := tv.standardType(f.Type)
 	if valType == nil {
 		valType = tv.ns.GetType(f.Type)
 		if valType == nil {
-			tv.errors <- errPosf(f.Position, "unknown value type %s", f.Type)
+			tv.errors(errPosf(f.Position, "unknown value type %s", f.Type))
 			return
 		}
 	}

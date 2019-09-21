@@ -2,10 +2,11 @@ package ast
 
 var _ Unique = &Option{}
 
-// Option опция поля
+// Option опция
 type Option struct {
 	unique
 
-	Name  string
-	Value string
+	Name      string
+	Value     string
+	Extension *Extension
 }

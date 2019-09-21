@@ -7,4 +7,5 @@ type Import struct {
 	unique
 
 	Path string
+	File *File
 }

@@ -24,8 +24,9 @@ var _ Unique = &MethodOption{}
 type MethodOption struct {
 	unique
 
-	Name   string
-	Values []*MethodOptionValue
+	Name      string
+	Extension *Extension
+	Values    []*MethodOptionValue
 }
 
 var _ Unique = &MethodOptionValue{}
