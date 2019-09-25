@@ -92,6 +92,9 @@ var ignoreOpts = map[optionType]map[string]struct{}{
 		"deprecated": {},
 		"packed":     {},
 	},
+	oneofOptions: {
+		"deprecated": {},
+	},
 	enumValueOptions: {
 		"deprecated": {},
 	},
