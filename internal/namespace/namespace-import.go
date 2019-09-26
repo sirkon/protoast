@@ -20,10 +20,8 @@ type nsImport struct {
 }
 
 func (ns *nsImport) getNode(name string) (ast.Node, scanner.Position) {
-	res, pos := ns.main.getNode(name)
-	if res != nil {
-		return res, pos
-	}
+	var res ast.Node
+	var pos scanner.Position
 
 	for _, imp := range ns.imports {
 		if imp.PkgName() == ns.PkgName() {
@@ -39,6 +37,11 @@ func (ns *nsImport) getNode(name string) (ast.Node, scanner.Position) {
 				return res, pos
 			}
 		}
+	}
+
+	res, pos = ns.main.getNode(name)
+	if res != nil {
+		return res, pos
 	}
 
 	return nil, pos
