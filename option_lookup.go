@@ -13,9 +13,10 @@ import (
 type optionType string
 
 const (
-	fileOptions      = "google.protobuf.FileOptions"
-	methodOptions    = "google.protobuf.MethodOptions"
-	fieldOptions     = "google.protobuf.FieldOptions"
+	fileOptions   = "google.protobuf.FileOptions"
+	methodOptions = "google.protobuf.MethodOptions"
+	fieldOptions  = "google.protobuf.FieldOptions"
+
 	enumValueOptions = "google.protobuf.EnumValueOptions"
 	oneofOptions     = "google.protobuf.OneOfOptions"
 
@@ -75,7 +76,7 @@ func (tv *typesVisitor) optionLookup(name string, pos scanner.Position, ot optio
 	return nil
 }
 
-// options to
+// options эти игнорируем
 var ignoreOpts = map[optionType]map[string]struct{}{
 	fileOptions: {
 		"optimize_for":         {},
@@ -88,10 +89,16 @@ var ignoreOpts = map[optionType]map[string]struct{}{
 		"java_multiple_files":  {},
 	},
 	fieldOptions: {
-		"default":    {},
-		"deprecated": {},
-		"packed":     {},
+		"default":       {},
+		"deprecated":    {},
+		"packed":        {},
+		"type_name":     {},
+		"type_extendee": {},
+		"default_value": {},
+		"oneof_index":   {},
+		"json_name":     {},
 	},
+
 	oneofOptions: {
 		"deprecated": {},
 	},

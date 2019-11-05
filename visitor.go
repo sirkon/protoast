@@ -179,7 +179,7 @@ func (tv *typesVisitor) VisitNormalField(i *proto.NormalField) {
 		tv.errors(errPosf(i.Position, "duplicate field %s, the previous definition was in %s", i.Name, prev))
 	}
 	if prev, ok := tv.msgCtx.prevInteger[i.Sequence]; ok {
-		tv.errors(errPosf(i.Position, "duplicate field sequence %d, the previous valuy was in %s", i.Sequence, prev))
+		tv.errors(errPosf(i.Position, "duplicate field sequence %d, the previous value was in %s", i.Sequence, prev))
 	}
 	tv.msgCtx.prevField[i.Name] = i.Position
 	tv.msgCtx.prevInteger[i.Sequence] = i.Position
