@@ -659,6 +659,7 @@ func TestSubsample(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	assert.Equal(t, "proto3", file.Syntax)
 
 	subMessage := &ast.Message{
 		Name: "SubMessage",
@@ -866,4 +867,21 @@ func TestQuestionable(t *testing.T) {
 			},
 		},
 	}, thisType)
+}
+
+func TestCommentRegression(t *testing.T) {
+	mapping := map[string]string{
+		"comment-regression.proto": "testdata/comment-regression.proto",
+	}
+	files := NewFiles(mapping)
+	nss := NewBuilder(files, func(err error) {
+		t.Errorf("\r%s", err)
+	})
+
+	file, err := nss.AST("comment-regression.proto")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Log(file)
 }
