@@ -7,4 +7,5 @@ type Comment struct {
 	unique
 
 	Value string
+	Lines []string
 }

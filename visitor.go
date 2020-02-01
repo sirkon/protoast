@@ -45,6 +45,7 @@ func (tv *typesVisitor) regInfo(k ast.Unique, comment *proto.Comment, pos scanne
 	if comment != nil {
 		cmt := &ast.Comment{
 			Value: comment.Message(),
+			Lines: comment.Lines,
 		}
 		tv.regInfo(cmt, nil, comment.Position)
 		tv.nss.comments[key] = cmt
@@ -129,7 +130,10 @@ func (tv *typesVisitor) VisitService(v *proto.Service) {
 	tv.regFieldInfo(tv.service, &tv.service.Name, v.Comment, v.Position)
 }
 
-func (tv *typesVisitor) VisitSyntax(s *proto.Syntax) {}
+func (tv *typesVisitor) VisitSyntax(s *proto.Syntax) {
+	tv.file.Syntax = s.Value
+	tv.regFieldInfo(tv.file, &tv.file.Syntax, s.Comment, s.Position)
+}
 
 func (tv *typesVisitor) VisitPackage(p *proto.Package) {
 	tv.file.Package = p.Name
