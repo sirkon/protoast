@@ -2,7 +2,10 @@ package protoast
 
 import (
 	"fmt"
+	"io/ioutil"
+	"path/filepath"
 	"reflect"
+	"strings"
 	"text/scanner"
 
 	"github.com/emicklei/proto"
@@ -54,6 +57,37 @@ type Builder struct {
 	positions     map[string]scanner.Position
 	uniqueContext ast.UniqueContext
 	errCount      int
+}
+
+// SameDirProtos Отдать список все файлы из директории содержащей указанный файл, включая данный.
+func (s *Builder) SameDirProtos(file *ast.File) ([]*ast.File, error) {
+	abs, err := s.protos.files.Abs(file.Name)
+	if err != nil {
+		return nil, errors.WithMessagef(err, "get absolute path name for %s", file.Name)
+	}
+	dir, _ := filepath.Split(abs)
+	lst, err := ioutil.ReadDir(dir)
+	if err != nil {
+		return nil, errors.WithMessagef(err, "read directory %s of file %s", dir, file.Name)
+	}
+
+	var res []*ast.File
+	relDir, _ := filepath.Split(file.Name)
+	for _, info := range lst {
+		if info.IsDir() {
+			continue
+		}
+		if !strings.HasSuffix(info.Name(), ".proto") {
+			continue
+		}
+		_, base := filepath.Split(info.Name())
+		newFile, err := s.AST(filepath.Join(relDir, base))
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, newFile)
+	}
+	return res, nil
 }
 
 // Comment возвращает комментарий для сущности реализующей Unique
