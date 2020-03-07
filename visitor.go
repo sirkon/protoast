@@ -1,6 +1,7 @@
 package protoast
 
 import (
+	"strconv"
 	"strings"
 	"text/scanner"
 
@@ -143,15 +144,240 @@ func (tv *typesVisitor) VisitPackage(p *proto.Package) {
 	tv.regFieldInfo(tv.file, &tv.file.Package, p.Comment, p.Position)
 }
 func (tv *typesVisitor) VisitOption(o *proto.Option) {
-	option := &ast.Option{
-		Name:      o.Name,
-		Value:     o.Constant.Source,
-		Extension: tv.optionLookup(o.Name, o.Position, fileOptions),
-	}
+	option := tv.feedOption(o, fileOptions)
+
 	tv.file.Options = append(tv.file.Options, option)
 	tv.regInfo(option, o.Comment, o.Position)
 	tv.regFieldInfo(option, &option.Name, nil, o.Position)
 	tv.regFieldInfo(option, &option.Value, nil, o.Constant.Position)
+}
+
+func (tv *typesVisitor) feedOption(o *proto.Option, opts optionType) *ast.Option {
+	res := &ast.Option{
+		Name:      o.Name,
+		Extension: tv.optionLookup(o.Name, o.Position, opts),
+	}
+
+	res.Value = tv.literalToOptionValueWithExt(o.Name, &o.Constant, res.Extension)
+
+	return res
+}
+
+func (tv *typesVisitor) literalToOptionValueWithExt(name string, l *proto.Literal, ext *ast.Extension) (result ast.OptionValue) {
+	defer func() {
+		if result != nil {
+			tv.regInfo(result, nil, l.Position)
+		}
+	}()
+	switch {
+	case l.IsString:
+		return &ast.StringOption{Value: l.Source}
+	case len(l.Array) > 0:
+		var res ast.ArrayOption
+		for _, item := range l.Array {
+			res.Value = append(res.Value, tv.literalToOptionValueWithExt(name, item, ext))
+		}
+		return &res
+	case len(l.OrderedMap) > 0:
+		res := &ast.MapOption{
+			Value: map[string]ast.OptionValue{},
+		}
+	outerLoop:
+		for _, item := range l.OrderedMap {
+			shortName := getShortName(name)
+			for _, f := range ext.Fields {
+				if f.Name == shortName {
+					switch v := f.Type.(type) {
+					case *ast.Message:
+						for _, f := range v.Fields {
+							if item.Name == f.Name {
+								res.Value[item.Name] = tv.literalToOptionValueWithMsg(item.Name, item.Literal, v)
+								continue outerLoop
+							}
+						}
+						tv.errors(errPosf(item.Position, "unknown option %s", item.Name))
+					case *ast.Optional:
+						msg := v.Type.(*ast.Message)
+						for _, f := range msg.Fields {
+							if item.Name == f.Name {
+								res.Value[item.Name] = tv.literalToOptionValueWithMsg(item.Name, item.Literal, msg)
+								continue outerLoop
+							}
+						}
+						tv.errors(errPosf(item.Position, "unknown option %s", item.Name))
+					default:
+						tv.errors(errPosf(l.Position, "invalid type %T for option %s", f.Type, name))
+						return nil
+					}
+
+				}
+				continue outerLoop
+			}
+			tv.errors(errPosf(l.Position, "invalid option %s", name))
+		}
+		return res
+	case l.Source != "":
+		if ext == nil {
+			return &ast.EmbeddedOption{Value: l.Source}
+		}
+		shortName := getShortName(name)
+		// здесь вычисляем реальный тип основываясь на записи в соответствующем расширении
+		for _, f := range ext.Fields {
+			if f.Name == shortName {
+				value := tv.fromType(f.Type, name, l)
+				if value != nil {
+					return value
+				}
+			}
+		}
+		tv.errors(errPosf(l.Position, "invalid literal value %s for option %s", l.Source, name))
+	default:
+		tv.errors(errPosf(l.Position, "invalid literal value %#v", *l))
+	}
+
+	return nil
+}
+
+func (tv *typesVisitor) literalToOptionValueWithMsg(name string, l *proto.Literal, msg *ast.Message) (result ast.OptionValue) {
+	defer func() {
+		if result != nil {
+			tv.regInfo(result, nil, l.Position)
+		}
+	}()
+
+	switch {
+	case l.IsString:
+		return &ast.StringOption{Value: l.Source}
+	case len(l.Array) > 0:
+		var res ast.ArrayOption
+		for _, item := range l.Array {
+			res.Value = append(res.Value, tv.literalToOptionValueWithMsg(name, item, msg))
+		}
+		return &res
+	case len(l.OrderedMap) > 0:
+		res := &ast.MapOption{
+			Value: map[string]ast.OptionValue{},
+		}
+	outerLoop:
+		for _, item := range l.OrderedMap {
+			shortName := getShortName(name)
+			for _, f := range msg.Fields {
+				if f.Name == shortName {
+					res.Value[item.Name] = tv.fromType(f.Type, shortName, l)
+					continue outerLoop
+				}
+			}
+			// res.Value[item.Name] = tv.literalToOptionValueWithMsg(item.Name, item.Literal, ext)
+			tv.errors(errPosf(l.Position, "invalid option %s", name))
+		}
+		return res
+	case l.Source != "":
+		if msg == nil {
+			return &ast.EmbeddedOption{Value: l.Source}
+		}
+		shortName := getShortName(name)
+		// здесь вычисляем реальный тип основываясь на записи в соответствующем расширении
+		for _, f := range msg.Fields {
+			if f.Name == shortName {
+				value := tv.fromType(f.Type, name, l)
+				if value != nil {
+					return value
+				}
+			}
+		}
+		tv.errors(errPosf(l.Position, "invalid literal value %s for option %s", l.Source, name))
+	default:
+		tv.errors(errPosf(l.Position, "invalid literal value %#v", *l))
+	}
+
+	return nil
+}
+
+func getShortName(name string) string {
+	items := strings.Split(strings.Trim(name, `()`), ".")
+	return items[len(items)-1]
+}
+
+func (tv *typesVisitor) fromType(fieldType ast.Type, name string, l *proto.Literal) ast.OptionValue {
+	switch v := fieldType.(type) {
+	case *ast.Int32:
+		return tv.intValue(name, l)
+	case *ast.Int64:
+		return tv.intValue(name, l)
+	case *ast.Uint32:
+		return tv.uintValue(name, l)
+	case *ast.Uint64:
+		return tv.uintValue(name, l)
+	case *ast.Fixed32:
+		return tv.intValue(name, l)
+	case *ast.Fixed64:
+		return tv.intValue(name, l)
+	case *ast.Sfixed32:
+		return tv.intValue(name, l)
+	case *ast.Sfixed64:
+		return tv.intValue(name, l)
+	case *ast.Sint32:
+		return tv.intValue(name, l)
+	case *ast.Sint64:
+		return tv.intValue(name, l)
+	case *ast.Float32:
+		return tv.floatValue(name, l)
+	case *ast.Float64:
+		return tv.floatValue(name, l)
+	case *ast.Bool:
+		return tv.boolValue(name, l)
+	case *ast.String:
+		return &ast.StringOption{Value: l.Source}
+	case *ast.Enum:
+		for _, ev := range v.Values {
+			if ev.Name == l.Source {
+				return &ast.EnumOption{Value: ev}
+			}
+		}
+	case *ast.Optional:
+		return tv.fromType(v.Type, name, l)
+	case *ast.Repeated:
+		return tv.fromType(v.Type, name, l)
+	default:
+		tv.errors(errPosf(l.Position, "type %T is not supported for option values", fieldType))
+	}
+	return nil
+}
+
+func (tv *typesVisitor) intValue(name string, l *proto.Literal) *ast.IntOption {
+	res, err := strconv.ParseInt(l.Source, 10, 64)
+	if err != nil {
+		tv.errors(errPosf(l.Position, "invalid value for option %s: %s", name, err))
+	}
+	return &ast.IntOption{Value: res}
+}
+
+func (tv *typesVisitor) uintValue(name string, l *proto.Literal) *ast.UintOption {
+	res, err := strconv.ParseUint(l.Source, 10, 64)
+	if err != nil {
+		tv.errors(errPosf(l.Position, "invalid value for option %s: %s", name, err))
+	}
+	return &ast.UintOption{Value: res}
+}
+
+func (tv *typesVisitor) floatValue(name string, l *proto.Literal) *ast.FloatOption {
+	res, err := strconv.ParseFloat(l.Source, 64)
+	if err != nil {
+		tv.errors(errPosf(l.Position, "invalid value for option %s: %s", name, err))
+	}
+	return &ast.FloatOption{Value: res}
+}
+
+func (tv *typesVisitor) boolValue(name string, l *proto.Literal) *ast.BoolOption {
+	switch l.Source {
+	case "true":
+		return &ast.BoolOption{Value: true}
+	case "false":
+		return &ast.BoolOption{Value: false}
+	}
+	tv.errors(errPosf(l.Position, "invalid value for option %s: only 'true' or 'false' are allowed, got %s", name, l.Source))
+
+	return nil
 }
 
 func (tv *typesVisitor) VisitImport(i *proto.Import) {
@@ -190,11 +416,7 @@ func (tv *typesVisitor) VisitNormalField(i *proto.NormalField) {
 
 	var options []*ast.Option
 	for _, o := range i.Options {
-		option := &ast.Option{
-			Name:      o.Name,
-			Value:     o.Constant.Source,
-			Extension: tv.optionLookup(o.Name, o.Position, fieldOptions),
-		}
+		option := tv.feedOption(o, fieldOptions)
 		options = append(options, option)
 		tv.regInfo(option, o.Comment, o.Position)
 		tv.regFieldInfo(option, &option.Name, nil, o.Position)
@@ -292,11 +514,7 @@ func (tv *typesVisitor) VisitEnumField(i *proto.EnumField) {
 	tv.enumCtx.prevInteger[i.Integer] = i.Position
 	var options []*ast.Option
 	if i.ValueOption != nil {
-		option := &ast.Option{
-			Name:      i.ValueOption.Name,
-			Value:     i.ValueOption.Constant.Source,
-			Extension: tv.optionLookup(i.ValueOption.Name, i.ValueOption.Position, enumValueOptions),
-		}
+		option := tv.feedOption(i.ValueOption, enumValueOptions)
 		tv.regInfo(option, i.ValueOption.Comment, i.ValueOption.Position)
 		tv.regFieldInfo(option, &option.Name, nil, i.ValueOption.Position)
 		tv.regFieldInfo(option, &option.Value, nil, i.ValueOption.Constant.Position)
@@ -375,11 +593,7 @@ func (tv *typesVisitor) VisitOneofField(o *proto.OneOfField) {
 
 	var options []*ast.Option
 	for _, o := range o.Options {
-		option := &ast.Option{
-			Name:      o.Name,
-			Value:     o.Constant.Source,
-			Extension: tv.optionLookup(o.Name, o.Position, oneofOptions),
-		}
+		option := tv.feedOption(o, oneofOptions)
 		options = append(options, option)
 		tv.regInfo(option, o.Comment, o.Position)
 		tv.regFieldInfo(option, &option.Name, nil, o.Position)
@@ -489,11 +703,7 @@ func (tv *typesVisitor) VisitMapField(f *proto.MapField) {
 
 	var options []*ast.Option
 	for _, o := range f.Options {
-		option := &ast.Option{
-			Name:      o.Name,
-			Value:     o.Constant.Source,
-			Extension: tv.optionLookup(o.Name, o.Position, fieldOptions),
-		}
+		option := tv.feedOption(o, fieldOptions)
 		tv.regInfo(option, o.Comment, o.Position)
 		tv.regFieldInfo(option, &option.Name, nil, o.Position)
 		tv.regFieldInfo(option, &option.Value, nil, o.Constant.Position)

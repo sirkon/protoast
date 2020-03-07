@@ -23,3 +23,7 @@ extend google.protobuf.MethodOptions {
 extend google.protobuf.EnumValueOptions {
     uint32 http_status = 102032132;
 }
+
+extend google.protobuf.FieldOptions {
+    string lalala = 12313;
+}

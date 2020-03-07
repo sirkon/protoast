@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package sample;
+
+import "common/options.proto";
+
+message User {
+    string id = 1 [(common.lalala) = "lalala"];
+    string name = 2;
+}

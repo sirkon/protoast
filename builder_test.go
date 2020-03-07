@@ -27,6 +27,39 @@ func (c copier) copyType(t ast.Type) ast.Type {
 	return c.copyCat(t).(ast.Type)
 }
 
+func (c copier) copyOptionValue(vv ast.OptionValue) ast.OptionValue {
+	switch v := vv.(type) {
+	case *ast.EmbeddedOption:
+		return &ast.EmbeddedOption{Value: v.Value}
+	case *ast.BoolOption:
+		return &ast.BoolOption{Value: v.Value}
+	case *ast.StringOption:
+		return &ast.StringOption{Value: v.Value}
+	case *ast.IntOption:
+		return &ast.IntOption{Value: v.Value}
+	case *ast.UintOption:
+		return &ast.UintOption{Value: v.Value}
+	case *ast.FloatOption:
+		return &ast.FloatOption{Value: v.Value}
+	case *ast.ArrayOption:
+		var opts []ast.OptionValue
+		for _, opt := range v.Value {
+			opts = append(opts, c.copyOptionValue(opt))
+		}
+		return &ast.ArrayOption{
+			Value: opts,
+		}
+	case *ast.MapOption:
+		opts := map[string]ast.OptionValue{}
+		for k, vvv := range v.Value {
+			opts[k] = c.copyOptionValue(vvv)
+		}
+		return &ast.MapOption{Value: opts}
+	default:
+		panic(fmt.Errorf("unsupported option type %T", vv))
+	}
+}
+
 func (c copier) copyMsg(m *ast.Message) *ast.Message {
 	if m == nil {
 		return nil
@@ -233,8 +266,8 @@ func (c copier) copyCat(k ast.Unique) ast.Unique {
 	case *ast.Option:
 		return &ast.Option{
 			Name:      v.Name,
-			Value:     v.Value,
 			Extension: c.copyExt(v.Extension),
+			Value:     c.copyOptionValue(v.Value),
 		}
 	case *ast.Optional:
 		return &ast.Optional{
@@ -879,6 +912,43 @@ func TestCommentRegression(t *testing.T) {
 	})
 
 	file, err := nss.AST("comment-regression.proto")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Log(file)
+}
+
+func TestHarderOptions(t *testing.T) {
+	mapping := map[string]string{
+		"comment-regression.proto": "testdata/comment-regression.proto",
+	}
+	files := NewFiles(mapping)
+	nss := NewBuilder(files, func(err error) {
+		t.Errorf("\r%s", err)
+	})
+
+	file, err := nss.AST("comment-regression.proto")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Log(file)
+}
+
+func TestOpts(t *testing.T) {
+	mapping := map[string]string{
+		"google/protobuf/any.proto":        "testdata/google/protobuf/any.proto",
+		"google/protobuf/descriptor.proto": "testdata/google/protobuf/descriptor.proto",
+		"common/options.proto":             "testdata/common/options.proto",
+		"opts.proto":                       "testdata/opts.proto",
+	}
+	files := NewFiles(mapping)
+	nss := NewBuilder(files, func(err error) {
+		t.Errorf("\r%s", err)
+	})
+
+	file, err := nss.AST("opts.proto")
 	if err != nil {
 		t.Fatal(err)
 	}
