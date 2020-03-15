@@ -88,8 +88,8 @@ func (tv *typesVisitor) VisitMessage(m *proto.Message) {
 	if realMsg == nil {
 		panic("internal error: message must be predeclared on the prefetch phase")
 	}
-	realMsg.Types = append(realMsg.Types, msg.Types...)
 	realMsg.Fields = append(realMsg.Fields, msg.Fields...)
+	*msg = *realMsg
 
 	if realMsg.ParentMsg == nil && !m.IsExtend {
 		tv.file.Types = append(tv.file.Types, realMsg)
