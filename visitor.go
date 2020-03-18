@@ -594,7 +594,7 @@ func (tv *typesVisitor) VisitOneofField(o *proto.OneOfField) {
 
 	var options []*ast.Option
 	for _, o := range o.Options {
-		option := tv.feedOption(o, fileOptions)
+		option := tv.feedOption(o, fieldOptions)
 		options = append(options, option)
 		tv.regInfo(option, o.Comment, o.Position)
 		tv.regFieldInfo(option, &option.Name, nil, o.Position)
