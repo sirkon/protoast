@@ -18,7 +18,7 @@ const (
 	fieldOptions  = "google.protobuf.FieldOptions"
 
 	enumValueOptions = "google.protobuf.EnumValueOptions"
-	oneofOptions     = "google.protobuf.OneOfOptions"
+	oneofOptions     = "google.protobuf.OneofOptions"
 
 	// Теоретически есть и другие опции, но они не предоставляются парсером
 )

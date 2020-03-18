@@ -34,6 +34,7 @@ type typesVisitor struct {
 		prevInteger map[int]scanner.Position
 	}
 
+	// очень крайне ненадёжно, здесь должен быть стэк OneOf-ов
 	oneOf *ast.OneOf
 
 	service *ast.Service
@@ -593,7 +594,7 @@ func (tv *typesVisitor) VisitOneofField(o *proto.OneOfField) {
 
 	var options []*ast.Option
 	for _, o := range o.Options {
-		option := tv.feedOption(o, oneofOptions)
+		option := tv.feedOption(o, fileOptions)
 		options = append(options, option)
 		tv.regInfo(option, o.Comment, o.Position)
 		tv.regFieldInfo(option, &option.Name, nil, o.Position)
@@ -612,6 +613,7 @@ func (tv *typesVisitor) VisitOneofField(o *proto.OneOfField) {
 	b := &ast.OneOfBranch{
 		Name:     o.Name,
 		Type:     t,
+		ParentOO: tv.oneOf,
 		Sequence: o.Sequence,
 		Options:  options,
 	}

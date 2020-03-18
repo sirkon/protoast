@@ -23,6 +23,7 @@ type OneOfBranch struct {
 
 	Name     string
 	Type     Type
+	ParentOO *OneOf
 	Sequence int
 	Options  []*Option
 }
