@@ -13,9 +13,10 @@ import (
 type optionType string
 
 const (
-	fileOptions   = "google.protobuf.FileOptions"
-	methodOptions = "google.protobuf.MethodOptions"
-	fieldOptions  = "google.protobuf.FieldOptions"
+	fileOptions    = "google.protobuf.FileOptions"
+	methodOptions  = "google.protobuf.MethodOptions"
+	messageOptions = "google.protobuf.MessageOptions"
+	fieldOptions   = "google.protobuf.FieldOptions"
 
 	enumValueOptions = "google.protobuf.EnumValueOptions"
 	oneofOptions     = "google.protobuf.OneofOptions"

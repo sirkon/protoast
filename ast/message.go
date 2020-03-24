@@ -9,9 +9,10 @@ type Message struct {
 	File      *File
 	ParentMsg *Message
 
-	Name   string
-	Fields []*MessageField
-	Types  []Type
+	Name    string
+	Fields  []*MessageField
+	Types   []Type
+	Options []*Option
 }
 
 func (*Message) genericType() {}

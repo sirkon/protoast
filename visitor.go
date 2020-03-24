@@ -77,6 +77,10 @@ func (tv *typesVisitor) VisitMessage(m *proto.Message) {
 		Name:      m.Name,
 		ParentMsg: tv.msgCtx.item,
 	}
+	prev := tv.msgCtx
+	defer func() {
+		tv.msgCtx = prev
+	}()
 	tv.processDirectMessage(m, msg)
 	if m.IsExtend {
 		ext := ast.MessageToExtension(msg)
@@ -90,6 +94,7 @@ func (tv *typesVisitor) VisitMessage(m *proto.Message) {
 		panic("internal error: message must be predeclared on the prefetch phase")
 	}
 	realMsg.Fields = append(realMsg.Fields, msg.Fields...)
+	realMsg.Options = msg.Options
 	*msg = *realMsg
 
 	if realMsg.ParentMsg == nil && !m.IsExtend {
@@ -145,9 +150,18 @@ func (tv *typesVisitor) VisitPackage(p *proto.Package) {
 	tv.regFieldInfo(tv.file, &tv.file.Package, p.Comment, p.Position)
 }
 func (tv *typesVisitor) VisitOption(o *proto.Option) {
-	option := tv.feedOption(o, fileOptions)
+	var option *ast.Option
+	if tv.msgCtx.item != nil {
+		option = tv.feedOption(o, messageOptions)
+	} else {
+		option = tv.feedOption(o, fileOptions)
+	}
 
-	tv.file.Options = append(tv.file.Options, option)
+	if tv.msgCtx.item != nil {
+		tv.msgCtx.item.Options = append(tv.msgCtx.item.Options, option)
+	} else {
+		tv.file.Options = append(tv.file.Options, option)
+	}
 	tv.regInfo(option, o.Comment, o.Position)
 	tv.regFieldInfo(option, &option.Name, nil, o.Position)
 	tv.regFieldInfo(option, &option.Value, nil, o.Constant.Position)
