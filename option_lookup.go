@@ -109,4 +109,7 @@ var ignoreOpts = map[optionType]map[string]struct{}{
 	methodOptions: {
 		"deprecated": {},
 	},
+	messageOptions: {
+		"deprecated": {},
+	},
 }
