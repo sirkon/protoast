@@ -59,7 +59,7 @@ func (s *scope) WithScope(name string) Namespace {
 		s.builder,
 	)
 
-	return s.builder.get(s.String(), ns)
+	return s.builder.get(ns.String(), ns)
 }
 
 func (s *scope) GetType(name string) ast.Type {

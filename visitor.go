@@ -193,7 +193,22 @@ func (tv *typesVisitor) literalToOptionValueWithExt(name string, l *proto.Litera
 			res.Value = append(res.Value, tv.literalToOptionValueWithExt(name, item, ext))
 		}
 		return &res
-	case len(l.OrderedMap) > 0:
+	case l.Source != "":
+		if ext == nil {
+			return &ast.EmbeddedOption{Value: l.Source}
+		}
+		shortName := getShortName(name)
+		// здесь вычисляем реальный тип основываясь на записи в соответствующем расширении
+		for _, f := range ext.Fields {
+			if f.Name == shortName {
+				value := tv.fromType(f.Type, name, l)
+				if value != nil {
+					return value
+				}
+			}
+		}
+		tv.errors(errPosf(l.Position, "invalid literal value %s for option %s", l.Source, name))
+	default:
 		res := &ast.MapOption{
 			Value: map[string]ast.OptionValue{},
 		}
@@ -231,23 +246,6 @@ func (tv *typesVisitor) literalToOptionValueWithExt(name string, l *proto.Litera
 			tv.errors(errPosf(l.Position, "invalid option %s", name))
 		}
 		return res
-	case l.Source != "":
-		if ext == nil {
-			return &ast.EmbeddedOption{Value: l.Source}
-		}
-		shortName := getShortName(name)
-		// здесь вычисляем реальный тип основываясь на записи в соответствующем расширении
-		for _, f := range ext.Fields {
-			if f.Name == shortName {
-				value := tv.fromType(f.Type, name, l)
-				if value != nil {
-					return value
-				}
-			}
-		}
-		tv.errors(errPosf(l.Position, "invalid literal value %s for option %s", l.Source, name))
-	default:
-		tv.errors(errPosf(l.Position, "invalid literal value %#v", *l))
 	}
 
 	return nil
