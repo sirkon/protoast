@@ -220,6 +220,14 @@ func (tv *typesVisitor) literalToOptionValueWithExt(name string, l *proto.Litera
 					switch v := f.Type.(type) {
 					case *ast.Message:
 						for _, f := range v.Fields {
+							if vv, ok := f.Type.(*ast.OneOf); ok {
+								for _, b := range vv.Branches {
+									if item.Name == b.Name {
+										res.Value[item.Name] = tv.literalToOptionValueWithOneof(item.Name, item.Literal, vv)
+										continue outerLoop
+									}
+								}
+							}
 							if item.Name == f.Name {
 								res.Value[item.Name] = tv.literalToOptionValueWithMsg(item.Name, item.Literal, v)
 								continue outerLoop
@@ -229,6 +237,14 @@ func (tv *typesVisitor) literalToOptionValueWithExt(name string, l *proto.Litera
 					case *ast.Optional:
 						msg := v.Type.(*ast.Message)
 						for _, f := range msg.Fields {
+							if vv, ok := f.Type.(*ast.OneOf); ok {
+								for _, b := range vv.Branches {
+									if item.Name == b.Name {
+										res.Value[item.Name] = tv.literalToOptionValueWithOneof(item.Name, item.Literal, vv)
+										continue outerLoop
+									}
+								}
+							}
 							if item.Name == f.Name {
 								res.Value[item.Name] = tv.literalToOptionValueWithMsg(item.Name, item.Literal, msg)
 								continue outerLoop
@@ -301,6 +317,59 @@ func (tv *typesVisitor) literalToOptionValueWithMsg(name string, l *proto.Litera
 		tv.errors(errPosf(l.Position, "invalid literal value %s for option %s", l.Source, name))
 	default:
 		tv.errors(errPosf(l.Position, "invalid literal value %#v", *l))
+	}
+
+	return nil
+}
+
+func (tv *typesVisitor) literalToOptionValueWithOneof(name string, l *proto.Literal, oo *ast.OneOf) (result ast.OptionValue) {
+	defer func() {
+		if result != nil {
+			tv.regInfo(result, nil, l.Position)
+		}
+	}()
+
+	switch {
+	case l.IsString:
+		return &ast.StringOption{Value: l.Source}
+	case len(l.Array) > 0:
+		var res ast.ArrayOption
+		for _, item := range l.Array {
+			res.Value = append(res.Value, tv.literalToOptionValueWithOneof(name, item, oo))
+		}
+		return &res
+	case l.Source != "":
+		if oo == nil {
+			return &ast.EmbeddedOption{Value: l.Source}
+		}
+		shortName := getShortName(name)
+		// здесь вычисляем реальный тип основываясь на записи в соответствующем расширении
+		for _, b := range oo.Branches {
+			if b.Name == shortName {
+				value := tv.fromType(b.Type, name, l)
+				if value != nil {
+					return value
+				}
+			}
+		}
+		tv.errors(errPosf(l.Position, "invalid literal value %s for option %s", l.Source, name))
+	default:
+		res := &ast.MapOption{
+			Value: map[string]ast.OptionValue{},
+		}
+	outerLoop:
+		for _, item := range l.OrderedMap {
+			shortName := getShortName(name)
+			for _, b := range oo.Branches {
+				if b.Name == shortName {
+					res.Value[item.Name] = tv.fromType(b.Type, shortName, l)
+					continue outerLoop
+				}
+			}
+			// res.Value[item.Name] = tv.literalToOptionValueWithMsg(item.Name, item.Literal, ext)
+			tv.errors(errPosf(l.Position, "invalid option %s", name))
+		}
+		return res
 	}
 
 	return nil
