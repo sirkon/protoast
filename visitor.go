@@ -316,7 +316,7 @@ func (tv *typesVisitor) literalToOptionValueWithMsg(name string, l *proto.Litera
 		}
 		tv.errors(errPosf(l.Position, "invalid literal value %s for option %s", l.Source, name))
 	default:
-		tv.errors(errPosf(l.Position, "invalid literal value %#v", *l))
+		return &ast.MapOption{}
 	}
 
 	return nil
