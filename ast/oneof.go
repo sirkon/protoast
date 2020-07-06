@@ -16,6 +16,7 @@ func (*OneOf) genericType() {}
 func (*OneOf) node()        {}
 
 var _ Unique = &OneOfBranch{}
+var _ Field = &OneOfBranch{}
 
 // OneOfBranch представление для ветви
 type OneOfBranch struct {
@@ -27,3 +28,5 @@ type OneOfBranch struct {
 	Sequence int
 	Options  []*Option
 }
+
+func (*OneOfBranch) isField() {}

@@ -18,7 +18,26 @@ type Message struct {
 func (*Message) genericType() {}
 func (*Message) node()        {}
 
+// AllFields возвращает поля и ветви oneof данного сообщения единым списком
+func (m *Message) AllFields() []Field {
+	res := make([]Field, 0, len(m.Fields))
+
+	for _, f := range m.Fields {
+		switch v := f.Type.(type) {
+		case *OneOf:
+			for _, b := range v.Branches {
+				res = append(res, b)
+			}
+		default:
+			res = append(res, f)
+		}
+	}
+
+	return res
+}
+
 var _ Unique = &MessageField{}
+var _ Field = &MessageField{}
 
 // MessageField представление поля message-а
 type MessageField struct {
@@ -29,3 +48,5 @@ type MessageField struct {
 	Type     Type
 	Options  []*Option
 }
+
+func (*MessageField) isField() {}
