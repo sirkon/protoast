@@ -49,4 +49,6 @@ type MessageField struct {
 	Options  []*Option
 }
 
-func (*MessageField) isField() {}
+func (m *MessageField) isField() (Type, []*Option) {
+	return m.Type, m.Options
+}
