@@ -144,6 +144,9 @@ func (tv *typesVisitor) VisitSyntax(s *proto.Syntax) {
 
 func (tv *typesVisitor) VisitPackage(p *proto.Package) {
 	tv.file.Package = p.Name
+	if tv.file.GoPkg == "" {
+		tv.file.GoPkg = p.Name
+	}
 	if err := tv.ns.SetPkgName(p.Name); err != nil {
 		tv.errors(err)
 	}
@@ -155,6 +158,25 @@ func (tv *typesVisitor) VisitOption(o *proto.Option) {
 		option = tv.feedOption(o, messageOptions)
 	} else {
 		option = tv.feedOption(o, fileOptions)
+
+		if o.Name == "go_package" {
+			if o.Constant.Source == "" {
+				tv.errors(errPosf(o.Constant.Position, "missing go_package option value"))
+			}
+			parts := strings.Split(o.Constant.Source, ";")
+			switch len(parts) {
+			case 1:
+				tv.file.GoPkg = parts[0]
+			case 2:
+				tv.file.GoPath = parts[0]
+				tv.file.GoPkg = parts[1]
+			default:
+				tv.errors(errPosf(
+					o.Constant.Position,
+					`invalid go_package option value, can only be either "<path>;<pkg>" or "<pkg>"`,
+				))
+			}
+		}
 	}
 
 	if tv.msgCtx.item != nil {

@@ -955,3 +955,32 @@ func TestOpts(t *testing.T) {
 
 	t.Log(file)
 }
+
+func TestPackageName(t *testing.T) {
+	mapping := map[string]string{
+		"go_package_pkg.proto":     "testdata/go_package_pkg.proto",
+		"go_package_full.proto":    "testdata/go_package_full.proto",
+		"go_package_missing.proto": "testdata/go_package_missing.proto",
+		"go_package_invalid.proto": "testdata/go_package_invalid.proto",
+	}
+	files := NewFiles(mapping)
+	nss := NewBuilder(files, func(err error) {
+		t.Logf("\r%s", err)
+	})
+
+	file, err := nss.AST("go_package_pkg.proto")
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.Equal(t, "name", file.GoPkg)
+
+	file, err = nss.AST("go_package_full.proto")
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.Equal(t, "github.com/sirkon/testdata", file.GoPath)
+	assert.Equal(t, "name", file.GoPkg)
+
+	_, err = nss.AST("go_package_missing.proto")
+	_, err = nss.AST("go_package_invalid.proto")
+}

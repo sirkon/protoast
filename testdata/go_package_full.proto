@@ -1,0 +1,5 @@
+syntax = "proto3";
+
+package sample;
+
+option go_package = "github.com/sirkon/testdata;name";

@@ -21,6 +21,9 @@ type File struct {
 	Extensions []*Extension
 	Services   []*Service
 	Options    []*Option
+
+	GoPath string
+	GoPkg  string
 }
 
 func (*File) node() {}
