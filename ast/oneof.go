@@ -29,6 +29,6 @@ type OneOfBranch struct {
 	Options  []*Option
 }
 
-func (o *OneOfBranch) isField() (Type, []*Option) {
-	return o.Type, o.Options
+func (o *OneOfBranch) isField() (string, Type, []*Option) {
+	return o.Name, o.Type, o.Options
 }
