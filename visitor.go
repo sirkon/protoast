@@ -222,6 +222,7 @@ func (tv *typesVisitor) literalToOptionValueWithExt(name string, l *proto.Litera
 		shortName := getShortName(name)
 		// здесь вычисляем реальный тип основываясь на записи в соответствующем расширении
 		for _, f := range ext.Fields {
+			f := f
 			if f.Name == shortName {
 				value := tv.fromType(f.Type, name, l)
 				if value != nil {
@@ -236,14 +237,18 @@ func (tv *typesVisitor) literalToOptionValueWithExt(name string, l *proto.Litera
 		}
 	outerLoop:
 		for _, item := range l.OrderedMap {
+			item := item
 			shortName := getShortName(name)
 			for _, f := range ext.Fields {
+				f := f
 				if f.Name == shortName {
 					switch v := f.Type.(type) {
 					case *ast.Message:
 						for _, f := range v.Fields {
+							f := f
 							if vv, ok := f.Type.(*ast.OneOf); ok {
 								for _, b := range vv.Branches {
+									b := b
 									if item.Name == b.Name {
 										res.Value[item.Name] = tv.literalToOptionValueWithOneof(item.Name, item.Literal, vv)
 										continue outerLoop
@@ -259,6 +264,7 @@ func (tv *typesVisitor) literalToOptionValueWithExt(name string, l *proto.Litera
 					case *ast.Optional:
 						msg := v.Type.(*ast.Message)
 						for _, f := range msg.Fields {
+							f := f
 							if vv, ok := f.Type.(*ast.OneOf); ok {
 								for _, b := range vv.Branches {
 									if item.Name == b.Name {
@@ -434,6 +440,7 @@ func (tv *typesVisitor) fromType(fieldType ast.Type, name string, l *proto.Liter
 		return &ast.StringOption{Value: l.Source}
 	case *ast.Enum:
 		for _, ev := range v.Values {
+			ev := ev
 			if ev.Name == l.Source {
 				return &ast.EnumOption{Value: ev}
 			}
@@ -520,6 +527,7 @@ func (tv *typesVisitor) VisitNormalField(i *proto.NormalField) {
 
 	var options []*ast.Option
 	for _, o := range i.Options {
+		o := o
 		option := tv.feedOption(o, fieldOptions)
 		options = append(options, option)
 		tv.regInfo(option, o.Comment, o.Position)
