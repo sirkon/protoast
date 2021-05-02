@@ -14,6 +14,7 @@ type optionType string
 
 const (
 	fileOptions    = "google.protobuf.FileOptions"
+	serviceOptions = "google.protobuf.ServiceOptions"
 	methodOptions  = "google.protobuf.MethodOptions"
 	messageOptions = "google.protobuf.MessageOptions"
 	fieldOptions   = "google.protobuf.FieldOptions"
@@ -99,7 +100,6 @@ var ignoreOpts = map[optionType]map[string]struct{}{
 		"oneof_index":   {},
 		"json_name":     {},
 	},
-
 	oneofOptions: {
 		"deprecated": {},
 	},

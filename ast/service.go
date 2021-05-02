@@ -10,6 +10,7 @@ type Service struct {
 
 	Name    string
 	Methods []*Method
+	Options []*Option
 }
 
 func (s *Service) node() {}

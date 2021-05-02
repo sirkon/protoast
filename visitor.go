@@ -7,9 +7,9 @@ import (
 
 	"github.com/emicklei/proto"
 	"github.com/pkg/errors"
+	"github.com/sirkon/protoast/internal/namespace"
 
 	"github.com/sirkon/protoast/ast"
-	"github.com/sirkon/protoast/internal/namespace"
 )
 
 var _ proto.Visitor = &typesVisitor{}
@@ -33,6 +33,7 @@ type typesVisitor struct {
 		prevField   map[string]scanner.Position
 		prevInteger map[int]scanner.Position
 	}
+	serviceCtx *ast.Service
 
 	// очень крайне ненадёжно, здесь должен быть стэк OneOf-ов
 	oneOf *ast.OneOf
@@ -126,15 +127,19 @@ func (tv *typesVisitor) VisitService(v *proto.Service) {
 		Name: v.Name,
 	}
 
+	tv.serviceCtx = tv.service
 	for _, e := range v.Elements {
 		e.Accept(tv)
 	}
+	tv.serviceCtx = nil
+
 	if err := tv.ns.SetNode(v.Name, tv.service, v.Position); err != nil {
 		tv.errors(err)
 	}
 	tv.file.Services = append(tv.file.Services, tv.service)
 	tv.regInfo(tv.service, v.Comment, v.Position)
 	tv.regFieldInfo(tv.service, &tv.service.Name, v.Comment, v.Position)
+
 }
 
 func (tv *typesVisitor) VisitSyntax(s *proto.Syntax) {
@@ -154,7 +159,9 @@ func (tv *typesVisitor) VisitPackage(p *proto.Package) {
 }
 func (tv *typesVisitor) VisitOption(o *proto.Option) {
 	var option *ast.Option
-	if tv.msgCtx.item != nil {
+	if tv.serviceCtx != nil {
+		option = tv.feedOption(o, serviceOptions)
+	} else if tv.msgCtx.item != nil {
 		option = tv.feedOption(o, messageOptions)
 	} else {
 		option = tv.feedOption(o, fileOptions)
@@ -179,7 +186,9 @@ func (tv *typesVisitor) VisitOption(o *proto.Option) {
 		}
 	}
 
-	if tv.msgCtx.item != nil {
+	if tv.serviceCtx != nil {
+		tv.serviceCtx.Options = append(tv.serviceCtx.Options, option)
+	} else if tv.msgCtx.item != nil {
 		tv.msgCtx.item.Options = append(tv.msgCtx.item.Options, option)
 	} else {
 		tv.file.Options = append(tv.file.Options, option)
