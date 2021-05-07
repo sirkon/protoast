@@ -1,18 +1,16 @@
-package fileset
+package ast
 
 import (
 	"path"
 	"strings"
 
 	"github.com/sirkon/protoast/internal/errors"
-
-	"github.com/sirkon/protoast/ast"
 )
 
-// NewFileSet конструктор пакета прото-файлов
-func NewFileSet(files []*ast.File) (*FileSet, error) {
+// NewPackage конструктор пакета прото-файлов.
+func NewPackage(files []*File) (*Package, error) {
 	if len(files) == 0 {
-		return nil, errors.New("at least one file is required to form a set of proto files")
+		return nil, errors.New("at least one file is required to form a package of proto files")
 	}
 
 	var pkg string
@@ -41,7 +39,7 @@ func NewFileSet(files []*ast.File) (*FileSet, error) {
 		}
 	}
 
-	res := &FileSet{
+	res := &Package{
 		pkg:   pkg,
 		gopkg: gopkg,
 		files: files,
@@ -49,11 +47,15 @@ func NewFileSet(files []*ast.File) (*FileSet, error) {
 	return res, nil
 }
 
-// FileSet представление пакета прото-файлов
-type FileSet struct {
+// Package представление пакета прото-файлов. Данная структура введена
+// скорее для удобства, т.к. понятия пакет в смысле группа файлов с одинаковым
+// именем package в protobuf нет — файлы не попадают на трансляцию
+// автоматически, а добавляются туда вручную, при трансляции они могут попасть
+// в различные целевые каталоги и т.д.
+type Package struct {
 	pkg   string
 	gopkg string
-	files []*ast.File
+	files []*File
 }
 
 // File отдать файл с данным именем. Функция path.Split вызванная на имени файла
@@ -61,7 +63,7 @@ type FileSet struct {
 //
 // Правильные названия файлов при вызове: error_codes.proto, marker.proto, atlas
 // Неправильные названия файлов: atlas/atlas.proto, /atlas.proto
-func (s *FileSet) File(name string) (*ast.File, error) {
+func (s *Package) File(name string) (*File, error) {
 	if name == "" {
 		return nil, errors.New("empty name")
 	}
@@ -90,7 +92,7 @@ func (s *FileSet) File(name string) (*ast.File, error) {
 }
 
 // Service поиск сервиса с данным именем в пространстве имён пакета
-func (s *FileSet) Service(name string) *ast.Service {
+func (s *Package) Service(name string) *Service {
 	for _, file := range s.files {
 		service := file.Service(name)
 		if service != nil {
@@ -102,7 +104,7 @@ func (s *FileSet) Service(name string) *ast.Service {
 }
 
 // Type поиск типа с данным именем в корневом пространстве имён пакета
-func (s *FileSet) Type(name string) ast.Type {
+func (s *Package) Type(name string) Type {
 	for _, file := range s.files {
 		typ := file.Type(name)
 		if typ != nil {
@@ -113,16 +115,48 @@ func (s *FileSet) Type(name string) ast.Type {
 	return nil
 }
 
+// Message поиск структуры по имени.
+// Возвращает ошибку ast.ErrorTypeNotFound если такой тип с таким именем не найден.
+func (s *Package) Message(name string) (*Message, error) {
+	typ := s.Type(name)
+	if typ == nil {
+		return nil, ErrorTypeNotFound(name)
+	}
+
+	switch v := typ.(type) {
+	case *Message:
+		return v, nil
+	default:
+		return nil, unexpectedType(typ, &Message{})
+	}
+}
+
+// Enum поиск перечисления по имени
+// Возвращает ошибку ast.ErrorTypeNotFound если такой тип с таким именем не найден.
+func (s *Package) Enum(name string) (*Enum, error) {
+	typ := s.Type(name)
+	if typ == nil {
+		return nil, ErrorTypeNotFound(name)
+	}
+
+	switch v := typ.(type) {
+	case *Enum:
+		return v, nil
+	default:
+		return nil, unexpectedType(typ, &Enum{})
+	}
+}
+
 // ScanTypes пробежка по всем типам пакета, включая и вложенные
-func (s *FileSet) ScanTypes(inspector func(p ast.Type) bool) {
+func (s *Package) ScanTypes(inspector func(p Type) bool) {
 	for _, file := range s.files {
 		file.ScanTypes(inspector)
 	}
 }
 
 // Files получить все файлы текущего пакета
-func (s *FileSet) Files() []*ast.File {
-	var res []*ast.File
+func (s *Package) Files() []*File {
+	var res []*File
 	for _, file := range s.files {
 		res = append(res, file)
 	}
@@ -131,8 +165,8 @@ func (s *FileSet) Files() []*ast.File {
 }
 
 // Services получить все сервисы текущего пакета
-func (s *FileSet) Services() []*ast.Service {
-	var res []*ast.Service
+func (s *Package) Services() []*Service {
+	var res []*Service
 	for _, file := range s.files {
 		res = append(res, file.Services...)
 	}
@@ -141,8 +175,8 @@ func (s *FileSet) Services() []*ast.Service {
 }
 
 // Types получить все типы текущего пакета лежащие в корне пакета
-func (s *FileSet) Types() []ast.Type {
-	var res []ast.Type
+func (s *Package) Types() []Type {
+	var res []Type
 	for _, file := range s.files {
 		res = append(res, file.Types...)
 	}

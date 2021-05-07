@@ -87,6 +87,38 @@ func (m *Message) Type(name string) Type {
 	return nil
 }
 
+// Message поиск подструктуры по имени.
+// Возвращает ошибку ErrorTypeNotFound если такой тип с таким именем не найден.
+func (m *Message) Message(name string) (*Message, error) {
+	typ := m.Type(name)
+	if typ == nil {
+		return nil, ErrorTypeNotFound(name)
+	}
+
+	switch v := typ.(type) {
+	case *Message:
+		return v, nil
+	default:
+		return nil, unexpectedType(typ, &Message{})
+	}
+}
+
+// Enum поиск вложенного перечисления по имени.
+// Возвращает ошибку ErrorTypeNotFound если такой тип с таким именем не найден.
+func (m *Message) Enum(name string) (*Enum, error) {
+	typ := m.Type(name)
+	if typ == nil {
+		return nil, ErrorTypeNotFound(name)
+	}
+
+	switch v := typ.(type) {
+	case *Enum:
+		return v, nil
+	default:
+		return nil, unexpectedType(typ, &Enum{})
+	}
+}
+
 // ScanTypes пробежка по внутренним типам данной структуры
 func (m *Message) ScanTypes(inspector func(typ Type) bool) {
 	if !inspector(m) {

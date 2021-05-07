@@ -4,6 +4,7 @@ import (
 	"io"
 
 	"github.com/sirkon/protoast/ast/internal/liner"
+	"github.com/sirkon/protoast/internal/errors"
 )
 
 var _ Node = &File{}
@@ -42,6 +43,38 @@ func (f *File) Type(name string) Type {
 	}
 
 	return nil
+}
+
+// Message поиск структуры по имени.
+// Возвращает ошибку ErrorTypeNotFound если такой тип с таким именем не найден.
+func (f *File) Message(name string) (*Message, error) {
+	typ := f.Type(name)
+	if typ == nil {
+		return nil, ErrorTypeNotFound(name)
+	}
+
+	switch v := typ.(type) {
+	case *Message:
+		return v, nil
+	default:
+		return nil, unexpectedType(typ, &Message{})
+	}
+}
+
+// Enum поиск перечисления по имени
+// Возвращает ошибку ErrorTypeNotFound если такой тип с таким именем не найден.
+func (f *File) Enum(name string) (*Enum, error) {
+	typ := f.Type(name)
+	if typ == nil {
+		return nil, ErrorTypeNotFound(name)
+	}
+
+	switch v := typ.(type) {
+	case *Enum:
+		return v, nil
+	default:
+		return nil, unexpectedType(typ, &Enum{})
+	}
 }
 
 // ScanTypes пробежка по типам данного пакета
@@ -84,4 +117,8 @@ func (f *File) print(dest io.Writer, printer *Printer) error {
 	l.Newl()
 
 	return nil
+}
+
+func unexpectedType(typ Type, expected Type) error {
+	return errors.Newf("type is %T, not %T", typ, expected)
 }

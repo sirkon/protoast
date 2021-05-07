@@ -11,7 +11,6 @@ import (
 
 	"github.com/emicklei/proto"
 	"github.com/sirkon/protoast/internal/errors"
-	"github.com/sirkon/protoast/internal/fileset"
 	"github.com/sirkon/protoast/internal/namespace"
 
 	"github.com/sirkon/protoast/ast"
@@ -98,13 +97,13 @@ func (s *Builder) SameDirProtos(file *ast.File) ([]*ast.File, error) {
 }
 
 // SamePackage отдать все файлы пакета для данного файла
-func (s *Builder) SamePackage(file *ast.File) (*fileset.FileSet, error) {
+func (s *Builder) SamePackage(file *ast.File) (*ast.Package, error) {
 	files, err := s.SameDirProtos(file)
 	if err != nil {
 		return nil, errors.Wrap(err, "get list of proto files from the same directory")
 	}
 
-	res, err := fileset.NewFileSet(files)
+	res, err := ast.NewPackage(files)
 	if err != nil {
 		return nil, errors.Wrap(err, "form package of the given file")
 	}
@@ -114,7 +113,7 @@ func (s *Builder) SamePackage(file *ast.File) (*fileset.FileSet, error) {
 
 // Package отдать все файлы пакета для proto-файлов из данной директории.
 // Будет работать только для резолвера-функции.
-func (s *Builder) Package(dir string) (*fileset.FileSet, error) {
+func (s *Builder) Package(dir string) (*ast.Package, error) {
 	abs, err := s.imports.Abs(dir)
 	if err != nil {
 		return nil, errors.Wrap(err, "get absolute path for the directory")
@@ -143,7 +142,7 @@ func (s *Builder) Package(dir string) (*fileset.FileSet, error) {
 		files = append(files, file)
 	}
 
-	res, err := fileset.NewFileSet(files)
+	res, err := ast.NewPackage(files)
 	if err != nil {
 		return nil, errors.Wrap(err, "form proto-package for directory "+dir)
 	}
