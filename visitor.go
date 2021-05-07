@@ -6,7 +6,7 @@ import (
 	"text/scanner"
 
 	"github.com/emicklei/proto"
-	"github.com/pkg/errors"
+	"github.com/sirkon/protoast/internal/errors"
 	"github.com/sirkon/protoast/internal/namespace"
 
 	"github.com/sirkon/protoast/ast"
@@ -587,7 +587,7 @@ func (tv *typesVisitor) standardType(typeName string) ast.Type {
 	case "google.protobuf.Any":
 		file, err := tv.nss.AST("google/protobuf/any.proto")
 		if err != nil {
-			tv.errors(errors.WithMessage(err, "google.protobuf.Any must have google/protobuf/any.proto import"))
+			tv.errors(errors.Wrap(err, "google.protobuf.Any must have google/protobuf/any.proto import"))
 		}
 		return &ast.Any{
 			File: file,

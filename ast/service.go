@@ -13,4 +13,15 @@ type Service struct {
 	Options []*Option
 }
 
+// Method поиск метода по имени
+func (s *Service) Method(name string) *Method {
+	for _, method := range s.Methods {
+		if method.Name == name {
+			return method
+		}
+	}
+
+	return nil
+}
+
 func (s *Service) node() {}

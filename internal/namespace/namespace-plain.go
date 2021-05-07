@@ -4,7 +4,7 @@ import (
 	"strings"
 	"text/scanner"
 
-	"github.com/pkg/errors"
+	"github.com/sirkon/protoast/internal/errors"
 
 	"github.com/sirkon/protoast/ast"
 )
@@ -84,7 +84,7 @@ func (n *plain) GetType(name string) ast.Type {
 func (n *plain) SetNode(name string, def ast.Node, defPos scanner.Position) error {
 	prev, ok := n.ns[name]
 	if ok {
-		return errors.Errorf("%s duplicate type %s declartion, the previous one was %s", defPos, name, prev.pos)
+		return errors.Newf("%s duplicate type %s declartion, the previous one was %s", defPos, name, prev.pos)
 	}
 
 	n.ns[name] = nodeTuple{

@@ -2,10 +2,9 @@ package protoast
 
 import (
 	"io/ioutil"
-	"os"
 	"path/filepath"
 
-	"github.com/pkg/errors"
+	"github.com/sirkon/protoast/internal/errors"
 )
 
 // Files абстракция для работы с файлами
@@ -28,7 +27,7 @@ type files struct {
 func (f *files) Abs(name string) (string, error) {
 	res, ok := f.mapping[name]
 	if !ok {
-		return "", errors.Errorf("cannot resolve %s", name)
+		return "", errors.New("no such fie")
 	}
 	return res, nil
 }
@@ -36,12 +35,12 @@ func (f *files) Abs(name string) (string, error) {
 func (f *files) File(path string) ([]byte, error) {
 	absPath, ok := f.mapping[path]
 	if !ok {
-		return nil, errors.WithMessagef(os.ErrNotExist, "file %s", path)
+		return nil, errors.New("no such file")
 	}
 
 	data, err := ioutil.ReadFile(absPath)
 	if err != nil {
-		return nil, errors.WithMessagef(err, "reading %s", path)
+		return nil, errors.Wrap(err, "read file")
 	}
 
 	return data, nil
@@ -57,11 +56,11 @@ type backResolver func(name string) (string, error)
 func (b backResolver) File(path string) ([]byte, error) {
 	absPath, err := b.Abs(path)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "compute absolute path")
 	}
 	data, err := ioutil.ReadFile(absPath)
 	if err != nil {
-		return nil, errors.WithMessagef(err, "reading %s", path)
+		return nil, errors.Wrapf(err, "read file")
 	}
 	return data, nil
 }
@@ -69,11 +68,11 @@ func (b backResolver) File(path string) ([]byte, error) {
 func (b backResolver) Abs(path string) (string, error) {
 	res, err := b(path)
 	if err != nil {
-		return "", errors.WithMessagef(err, "resolving %s", path)
+		return "", errors.Wrap(err, "resole path")
 	}
 	absPath, err := filepath.Abs(res)
 	if err != nil {
-		return "", errors.WithMessagef(err, "expanding %s - resolved %s", res, path)
+		return "", errors.Wrap(err, "compute absolute path")
 	}
 	return absPath, nil
 }

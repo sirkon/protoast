@@ -2,17 +2,19 @@ package protoast
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
+	"path"
 	"path/filepath"
 	"reflect"
 	"strings"
 	"text/scanner"
 
 	"github.com/emicklei/proto"
-	"github.com/pkg/errors"
+	"github.com/sirkon/protoast/internal/errors"
+	"github.com/sirkon/protoast/internal/fileset"
+	"github.com/sirkon/protoast/internal/namespace"
 
 	"github.com/sirkon/protoast/ast"
-	"github.com/sirkon/protoast/internal/namespace"
 )
 
 // NewBuilder конструктор построителя AST-представления
@@ -37,6 +39,7 @@ func newBuilderWithCustomNaming(imports Files, errProcessing func(error), scopeN
 		comments:      map[string]*ast.Comment{},
 		positions:     map[string]scanner.Position{},
 		uniqueContext: ast.UniqueContext{},
+		imports:       imports,
 	}
 }
 
@@ -56,19 +59,22 @@ type Builder struct {
 	comments      map[string]*ast.Comment
 	positions     map[string]scanner.Position
 	uniqueContext ast.UniqueContext
+	imports       Files
 	errCount      int
 }
 
 // SameDirProtos Отдать список все файлы из директории содержащей указанный файл, включая данный.
+//
+// Deprecated: лучше использовать SamePackage
 func (s *Builder) SameDirProtos(file *ast.File) ([]*ast.File, error) {
 	abs, err := s.protos.files.Abs(file.Name)
 	if err != nil {
-		return nil, errors.WithMessagef(err, "get absolute path name for %s", file.Name)
+		return nil, errors.Wrapf(err, "get absolute path name for the file")
 	}
 	dir, _ := filepath.Split(abs)
-	lst, err := ioutil.ReadDir(dir)
+	lst, err := os.ReadDir(dir)
 	if err != nil {
-		return nil, errors.WithMessagef(err, "read directory %s of file %s", dir, file.Name)
+		return nil, errors.Wrap(err, "read file's directory "+dir)
 	}
 
 	var res []*ast.File
@@ -87,6 +93,61 @@ func (s *Builder) SameDirProtos(file *ast.File) ([]*ast.File, error) {
 		}
 		res = append(res, newFile)
 	}
+
+	return res, nil
+}
+
+// SamePackage отдать все файлы пакета для данного файла
+func (s *Builder) SamePackage(file *ast.File) (*fileset.FileSet, error) {
+	files, err := s.SameDirProtos(file)
+	if err != nil {
+		return nil, errors.Wrap(err, "get list of proto files from the same directory")
+	}
+
+	res, err := fileset.NewFileSet(files)
+	if err != nil {
+		return nil, errors.Wrap(err, "form package of the given file")
+	}
+
+	return res, nil
+}
+
+// Package отдать все файлы пакета для proto-файлов из данной директории.
+// Будет работать только для резолвера-функции.
+func (s *Builder) Package(dir string) (*fileset.FileSet, error) {
+	abs, err := s.imports.Abs(dir)
+	if err != nil {
+		return nil, errors.Wrap(err, "get absolute path for the directory")
+	}
+
+	readDir, err := os.ReadDir(abs)
+	if err != nil {
+		return nil, errors.Wrap(err, "list files in the directory")
+	}
+
+	var files []*ast.File
+	for _, entry := range readDir {
+		if entry.IsDir() {
+			continue
+		}
+
+		if !strings.HasSuffix(entry.Name(), ".proto") {
+			continue
+		}
+
+		file, err := s.AST(path.Join(dir, entry.Name()))
+		if err != nil {
+			return nil, errors.Wrap(err, "get AST for "+entry.Name())
+		}
+
+		files = append(files, file)
+	}
+
+	res, err := fileset.NewFileSet(files)
+	if err != nil {
+		return nil, errors.Wrap(err, "form proto-package for directory "+dir)
+	}
+
 	return res, nil
 }
 
@@ -130,7 +191,7 @@ func (s *Builder) PositionField(k ast.Unique, fieldAddr interface{}) scanner.Pos
 		addr := reflect.ValueOf(fieldAddr).Pointer()
 		for i := 0; i < val.NumField(); i++ {
 			if val.Field(i).Addr().Pointer() == addr {
-				panic(errors.Errorf("no position was set for %T.%s", k, val.Type().Field(i).Name))
+				panic(errors.Newf("no position was set for %T.%s", k, val.Type().Field(i).Name))
 			}
 		}
 		panic("must not be here")
@@ -148,7 +209,7 @@ func (s *Builder) AST(importPath string) (*ast.File, error) {
 func (s *Builder) Namespace(importPath string) (Namespace, error) {
 	_, _, err := s.get(importPath)
 	if err != nil {
-		return nil, errors.WithMessagef(err, "getting namespace for %s", importPath)
+		return nil, errors.Wrap(err, "getting namespace for the file")
 	}
 	return s.finalNses[importPath], nil
 }
@@ -170,11 +231,11 @@ func (s *Builder) get(importPath string) (namespace.Namespace, *ast.File, error)
 	}
 	protoItem, err := s.protos.fileProto(importPath)
 	if err != nil {
-		return nil, nil, errors.WithMessagef(err, "getting file %s", importPath)
+		return nil, nil, errors.Wrap(err, "get file")
 	}
 
 	if err = s.processFile(ns, protoItem, importPath); err != nil {
-		return nil, nil, errors.WithMessagef(err, "processing file %s", importPath)
+		return nil, nil, errors.Wrap(err, "process file")
 	}
 	ns.Finalize()
 
@@ -224,7 +285,7 @@ func (s *Builder) processFile(ns namespace.Namespace, p *proto.Proto, importPath
 	case 1:
 		return errors.New("an error occured")
 	default:
-		return errors.Errorf("%d errors occured", s.errCount)
+		return errors.Newf("%d errors occured", s.errCount)
 	}
 }
 

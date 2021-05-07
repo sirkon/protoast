@@ -26,6 +26,47 @@ type File struct {
 	GoPkg  string
 }
 
+// Type поиск типа по имени.
+func (f *File) Type(name string) Type {
+	for _, typ := range f.Types {
+		switch v := typ.(type) {
+		case *Message:
+			if v.Name == name {
+				return v
+			}
+		case *Enum:
+			if v.Name == name {
+				return v
+			}
+		}
+	}
+
+	return nil
+}
+
+// ScanTypes пробежка по типам данного пакета
+func (f *File) ScanTypes(inspector func(typ Type) bool) {
+	for _, typ := range f.Types {
+		switch v := typ.(type) {
+		case *Message:
+			v.ScanTypes(inspector)
+		default:
+			inspector(typ)
+		}
+	}
+}
+
+// Service поиск сервиса по имени
+func (f *File) Service(name string) *Service {
+	for _, service := range f.Services {
+		if service.Name == name {
+			return service
+		}
+	}
+
+	return nil
+}
+
 func (*File) node() {}
 
 func (f *File) print(dest io.Writer, printer *Printer) error {

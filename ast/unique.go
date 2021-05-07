@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"strconv"
 
-	"github.com/pkg/errors"
+	"github.com/sirkon/protoast/internal/errors"
 	"github.com/spaolacci/murmur3"
 )
 
@@ -59,16 +59,16 @@ func GetUnique(k Unique) string {
 // GetFieldKey получает ключ для поля данного k
 func GetFieldKey(k Unique, fieldAddr interface{}) string {
 	if reflect.TypeOf(fieldAddr).Kind() != reflect.Ptr {
-		panic(errors.Errorf("second parameter must be a pointer to one of k object field, got %T instead", fieldAddr))
+		panic(errors.Newf("second parameter must be a pointer to one of k object field, got %T instead", fieldAddr))
 	}
 
 	val := reflect.ValueOf(k)
 	for val.Type().Kind() != reflect.Ptr {
-		panic(errors.Errorf("invalid incoming object: must be a pointer to struct, got %T", k))
+		panic(errors.Newf("invalid incoming object: must be a pointer to struct, got %T", k))
 	}
 	val = val.Elem()
 	if val.Type().Kind() != reflect.Struct {
-		panic(errors.Errorf("invalid incoming object: must be a pointer to struct, got %T", k))
+		panic(errors.Newf("invalid incoming object: must be a pointer to struct, got %T", k))
 	}
 	rawFieldAddr := reflect.ValueOf(fieldAddr).Pointer()
 	var name string
@@ -83,7 +83,7 @@ func GetFieldKey(k Unique, fieldAddr interface{}) string {
 		}
 	}
 	if len(name) == 0 {
-		panic(errors.Errorf("given pointer does not address any field in the given object"))
+		panic(errors.Newf("given pointer does not address any field in the given object"))
 	}
 	return fmt.Sprintf("%s::%s", GetUnique(k), name)
 }

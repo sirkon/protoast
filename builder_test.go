@@ -1,9 +1,9 @@
 package protoast
 
 import (
-	"fmt"
 	"testing"
 
+	"github.com/sirkon/protoast/internal/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -56,7 +56,7 @@ func (c copier) copyOptionValue(vv ast.OptionValue) ast.OptionValue {
 		}
 		return &ast.MapOption{Value: opts}
 	default:
-		panic(fmt.Errorf("unsupported option type %T", vv))
+		panic(errors.Newf("unsupported option type %T", vv))
 	}
 }
 
@@ -308,7 +308,7 @@ func (c copier) copyCat(k ast.Unique) ast.Unique {
 	case *ast.Uint64:
 		return &ast.Uint64{}
 	default:
-		panic(fmt.Errorf("unsupported type %T", k))
+		panic(errors.Newf("unsupported type %T", k))
 	}
 }
 
@@ -649,7 +649,8 @@ func TestNamespaces_Get(t *testing.T) {
 				Name:    "Method4",
 				Input:   &ast.Stream{Type: c.copyType(simpleType)},
 				Output:  &ast.Stream{Type: c.copyType(responseType)},
-			}},
+			},
+		},
 	}
 	require.Equal(t, sampleService, srvSample)
 

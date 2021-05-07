@@ -36,6 +36,70 @@ func (m *Message) AllFields() []Field {
 	return res
 }
 
+// Field возвращает поле мессаджа по имени. Не производит нормализации по oneof-ам.
+func (m *Message) Field(name string) *MessageField {
+	for _, field := range m.Fields {
+		if field.Name == name {
+			return field
+		}
+	}
+
+	return nil
+}
+
+// FieldOneof возвращает поле мессаджа по имени, при этом залезает, если нужно, внутрь oneof-а
+func (m *Message) FieldOneof(name string) Field {
+	for _, field := range m.Fields {
+		if field.Name == name {
+			return field
+		}
+
+		oo, ok := field.Type.(*OneOf)
+		if !ok {
+			continue
+		}
+
+		for _, branch := range oo.Branches {
+			if branch.Name == name {
+				return branch
+			}
+		}
+	}
+
+	return nil
+}
+
+// Type поиск подтипа по имени
+func (m *Message) Type(name string) Type {
+	for _, typ := range m.Types {
+		switch v := typ.(type) {
+		case *Message:
+			if v.Name == name {
+				return v
+			}
+		case *Enum:
+			if v.Name == name {
+				return v
+			}
+		}
+	}
+
+	return nil
+}
+
+// ScanTypes пробежка по внутренним типам данной структуры
+func (m *Message) ScanTypes(inspector func(typ Type) bool) {
+	if !inspector(m) {
+		return
+	}
+
+	for _, typ := range m.Types {
+		inspector(typ)
+	}
+
+	return
+}
+
 var _ Unique = &MessageField{}
 var _ Field = &MessageField{}
 

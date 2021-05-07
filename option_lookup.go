@@ -5,7 +5,7 @@ import (
 	"strings"
 	"text/scanner"
 
-	"github.com/pkg/errors"
+	"github.com/sirkon/protoast/internal/errors"
 
 	"github.com/sirkon/protoast/ast"
 )
@@ -74,7 +74,7 @@ func (tv *typesVisitor) optionLookup(name string, pos scanner.Position, ot optio
 			}
 		}
 	}
-	tv.errors(errors.Errorf("%s unknown option (%s, belong to %s)", pos, name, ot))
+	tv.errors(errors.Newf("%s unknown option (%s, belong to %s)", pos, name, ot))
 	return nil
 }
 

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"text/scanner"
 
-	"github.com/pkg/errors"
+	"github.com/sirkon/protoast/internal/errors"
 
 	"github.com/sirkon/protoast/ast"
 )
@@ -75,7 +75,7 @@ func (ns *nsImport) SetNode(name string, def ast.Node, defPos scanner.Position) 
 		if imp.PkgName() == ns.PkgName() {
 			res, pos := imp.getNode(name)
 			if res != nil {
-				return errors.Errorf("%s duplicate definition of %s which has been previously defined here %s", defPos, name, pos)
+				return errors.Newf("%s duplicate definition of %s which has been previously defined here %s", defPos, name, pos)
 			}
 		}
 	}

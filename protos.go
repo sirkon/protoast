@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/emicklei/proto"
-	"github.com/pkg/errors"
+	"github.com/sirkon/protoast/internal/errors"
 )
 
 type protos struct {
@@ -16,11 +16,11 @@ type protos struct {
 func (p *protos) fileProto(importPath string) (res *proto.Proto, err error) {
 	fileData, err := p.files.File(importPath)
 	if err != nil {
-		return nil, errors.WithMessagef(err, "getting %s file data", importPath)
+		return nil, errors.Wrap(err, "get file data")
 	}
 	absPath, err := p.files.Abs(importPath)
 	if err != nil {
-		return nil, errors.WithMessagef(err, "couldn't find absolute path for import %s", importPath)
+		return nil, errors.Wrap(err, "compute absolute path for the file")
 	}
 	file := bytes.NewBuffer(fileData)
 
@@ -29,7 +29,7 @@ func (p *protos) fileProto(importPath string) (res *proto.Proto, err error) {
 
 	ast, err := parser.Parse()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "parse file")
 	}
 
 	p.trees[importPath] = ast

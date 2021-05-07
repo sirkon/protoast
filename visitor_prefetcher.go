@@ -2,10 +2,10 @@ package protoast
 
 import (
 	"github.com/emicklei/proto"
-	"github.com/pkg/errors"
+	"github.com/sirkon/protoast/internal/errors"
+	"github.com/sirkon/protoast/internal/namespace"
 
 	"github.com/sirkon/protoast/ast"
-	"github.com/sirkon/protoast/internal/namespace"
 )
 
 var _ proto.Visitor = &prefetcher{}
@@ -24,13 +24,13 @@ func (p *prefetcher) VisitMessage(m *proto.Message) {
 	if m.IsExtend {
 		msg := p.ns.GetType(m.Name)
 		if msg == nil {
-			p.errors(errors.Errorf("%s failed to find type %s to extend", m.Position, m.Name))
+			p.errors(errors.Newf("%s failed to find type %s to extend", m.Position, m.Name))
 			return
 		}
 		var ok bool
 		message, ok = msg.(*ast.Message)
 		if !ok {
-			p.errors(errors.Errorf("%s type %s turned to be not a message (%T)", m.Position, m.Name, msg))
+			p.errors(errors.Newf("%s type %s turned to be not a message (%T)", m.Position, m.Name, msg))
 		}
 	} else {
 		message = &ast.Message{

@@ -1,10 +1,9 @@
 package namespace
 
 import (
-	"fmt"
 	"text/scanner"
 
-	"github.com/pkg/errors"
+	"github.com/sirkon/protoast/internal/errors"
 
 	"github.com/sirkon/protoast/ast"
 )
@@ -49,7 +48,7 @@ func (s *scope) getNode(name string) (ast.Node, scanner.Position) {
 }
 
 func (s *scope) WithImport(pkgNamespace Namespace) (Namespace, error) {
-	return nil, fmt.Errorf("cannot import in inner scopes")
+	return nil, errors.New("cannot import in inner scopes")
 }
 
 func (s *scope) WithScope(name string) Namespace {
