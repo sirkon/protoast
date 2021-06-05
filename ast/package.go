@@ -7,10 +7,11 @@ import (
 	"github.com/sirkon/protoast/internal/errors"
 )
 
-// NewPackage конструктор пакета прото-файлов.
+// NewPackage конструктор пакета прото-файлов. Если список files пуст возвращается ошибка
+// ErrorPackageMissingFiles
 func NewPackage(files []*File) (*Package, error) {
 	if len(files) == 0 {
-		return nil, errors.New("at least one file is required to form a package of proto files")
+		return nil, ErrorPackageMissingFiles{}
 	}
 
 	var pkg string

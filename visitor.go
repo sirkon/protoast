@@ -1,6 +1,7 @@
 package protoast
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 	"text/scanner"
@@ -552,10 +553,24 @@ func (tv *typesVisitor) VisitNormalField(i *proto.NormalField) {
 		if strings.HasPrefix(i.Type, tv.file.Package+".") {
 			t = tv.ns.GetType(i.Type[len(tv.file.Package)+1:])
 		}
-		if t == nil {
-			tv.errors(errPosf(i.Position, "unknown type %s", i.Type))
-			return
+	}
+	if t == nil {
+		lastIndex := strings.LastIndex(i.Type, ".")
+		if lastIndex >= 0 {
+			curPkgParts := strings.Split(tv.file.Package, ".")
+			for len(curPkgParts) > 0 {
+				fullName := strings.Join(curPkgParts, ".") + "." + i.Type
+				t = tv.ns.GetType(fullName)
+				if t != nil {
+					break
+				}
+				curPkgParts = curPkgParts[:len(curPkgParts)-1]
+			}
 		}
+	}
+	if t == nil {
+		tv.errors(errPosf(i.Position, "unknown type %s", i.Type))
+		return
 	}
 	if i.Optional {
 		t = &ast.Optional{
@@ -725,11 +740,25 @@ func (tv *typesVisitor) VisitOneofField(o *proto.OneOfField) {
 	if t == nil {
 		t = tv.ns.GetType(o.Type)
 	}
-	tv.regInfo(t, nil, o.Position)
+	if t == nil {
+		lastIndex := strings.LastIndex(o.Type, ".")
+		if lastIndex >= 0 {
+			curPkgParts := strings.Split(tv.file.Package, ".")
+			for len(curPkgParts) > 0 {
+				fullName := strings.Join(curPkgParts, ".") + "." + o.Type
+				t = tv.ns.GetType(fullName)
+				if t != nil {
+					break
+				}
+				curPkgParts = curPkgParts[:len(curPkgParts)-1]
+			}
+		}
+	}
 	if t == nil {
 		tv.errors(errPosf(o.Position, "unknown type %s", o.Type))
 		return
 	}
+	tv.regInfo(t, nil, o.Position)
 	b := &ast.OneOfBranch{
 		Name:     o.Name,
 		Type:     t,
@@ -756,6 +785,7 @@ func (tv *typesVisitor) VisitRPC(r *proto.RPC) {
 
 	req := tv.ns.GetType(r.RequestType)
 	if req == nil {
+		fmt.Println("lol kek")
 		tv.errors(errPosf(r.Position, "unknown type %s", r.RequestType))
 		return
 	}
@@ -843,19 +873,34 @@ func (tv *typesVisitor) VisitMapField(f *proto.MapField) {
 	}
 	tv.regInfo(keyType, nil, f.Position)
 
-	valType := tv.standardType(f.Type)
-	if valType == nil {
-		valType = tv.ns.GetType(f.Type)
-		if valType == nil {
-			tv.errors(errPosf(f.Position, "unknown value type %s", f.Type))
-			return
+	t := tv.standardType(f.Type)
+	if t == nil {
+		t = tv.ns.GetType(f.Type)
+
+	}
+	if t == nil {
+		lastIndex := strings.LastIndex(f.Type, ".")
+		if lastIndex >= 0 {
+			curPkgParts := strings.Split(tv.file.Package, ".")
+			for len(curPkgParts) > 0 {
+				fullName := strings.Join(curPkgParts, ".") + "." + f.Type
+				t = tv.ns.GetType(fullName)
+				if t != nil {
+					break
+				}
+				curPkgParts = curPkgParts[:len(curPkgParts)-1]
+			}
 		}
 	}
-	tv.regInfo(valType, nil, f.Position)
+	if t == nil {
+		tv.errors(errPosf(f.Position, "unknown value type %s", f.Type))
+		return
+	}
+	tv.regInfo(t, nil, f.Position)
 
 	fieldType := &ast.Map{
 		KeyType:   keyType,
-		ValueType: valType,
+		ValueType: t,
 	}
 	tv.regInfo(fieldType, f.Comment, f.Position)
 

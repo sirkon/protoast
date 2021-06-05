@@ -112,7 +112,8 @@ func (s *Builder) SamePackage(file *ast.File) (*ast.Package, error) {
 }
 
 // Package отдать все файлы пакета для proto-файлов из данной директории.
-// Будет работать только для резолвера-функции.
+// Будет работать только для резолвера-функции. Если в директории нет файлов
+// то будет возвращена ошибка ast.ErrorPackageMissingFiles
 func (s *Builder) Package(dir string) (*ast.Package, error) {
 	abs, err := s.imports.Abs(dir)
 	if err != nil {
@@ -230,11 +231,11 @@ func (s *Builder) get(importPath string) (namespace.Namespace, *ast.File, error)
 	}
 	protoItem, err := s.protos.fileProto(importPath)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "get file")
+		return nil, nil, errors.Wrap(err, "get file "+importPath)
 	}
 
 	if err = s.processFile(ns, protoItem, importPath); err != nil {
-		return nil, nil, errors.Wrap(err, "process file")
+		return nil, nil, errors.Wrap(err, "process file "+importPath)
 	}
 	ns.Finalize()
 
