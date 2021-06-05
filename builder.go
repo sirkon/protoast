@@ -231,11 +231,11 @@ func (s *Builder) get(importPath string) (namespace.Namespace, *ast.File, error)
 	}
 	protoItem, err := s.protos.fileProto(importPath)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "get file "+importPath)
+		return nil, nil, errors.Wrap(err, "get proto file data")
 	}
 
 	if err = s.processFile(ns, protoItem, importPath); err != nil {
-		return nil, nil, errors.Wrap(err, "process file "+importPath)
+		return nil, nil, errors.Wrap(err, "process proto file data")
 	}
 	ns.Finalize()
 
