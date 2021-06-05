@@ -16,7 +16,7 @@ type protos struct {
 func (p *protos) fileProto(importPath string) (res *proto.Proto, err error) {
 	fileData, err := p.files.File(importPath)
 	if err != nil {
-		return nil, errors.Wrap(err, "get file data")
+		return nil, errors.Wrap(err, "read proto file data")
 	}
 	absPath, err := p.files.Abs(importPath)
 	if err != nil {

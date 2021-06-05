@@ -209,7 +209,7 @@ func (s *Builder) AST(importPath string) (*ast.File, error) {
 func (s *Builder) Namespace(importPath string) (Namespace, error) {
 	_, _, err := s.get(importPath)
 	if err != nil {
-		return nil, errors.Wrap(err, "getting namespace for the file")
+		return nil, errors.Wrap(err, "get namespace for the file")
 	}
 	return s.finalNses[importPath], nil
 }
