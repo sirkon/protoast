@@ -184,3 +184,13 @@ func (s *Package) Types() []Type {
 
 	return res
 }
+
+// Pkg имя proto-пакета
+func (s *Package) Pkg() string {
+	return s.pkg
+}
+
+// GoPkg go-пакета
+func (s *Package) GoPkg() string {
+	return s.gopkg
+}
