@@ -1,6 +1,7 @@
 package namespace
 
 import (
+	"strings"
 	"text/scanner"
 
 	"github.com/sirkon/protoast/internal/errors"
@@ -67,7 +68,29 @@ func (s *scope) GetType(name string) ast.Type {
 		return res
 	}
 
-	return s.outer.GetType(name)
+	res = s.outer.GetType(name)
+	if res != nil {
+		return res
+	}
+
+	// возможно здесь речь идёт о структурах, которые могут иметь внутренние, пробуем этот подход
+	pos := strings.IndexByte(name, '.')
+	if pos < 0 {
+		// точно нет
+		return nil
+	}
+
+	v := s.outer.GetType(name[:pos])
+	if v == nil {
+		return nil
+	}
+
+	m, ok := v.(*ast.Message)
+	if !ok {
+		return nil
+	}
+
+	return lookMessageNestedType(m, name)
 }
 
 func (s *scope) SetNode(name string, def ast.Node, defPos scanner.Position) error {
@@ -80,4 +103,29 @@ func (s *scope) PkgName() string { return s.outer.PkgName() }
 func (s *scope) String() string  { return s.name }
 func (s *scope) SetPkgName(pkg string) error {
 	return errors.New("package directive is not allowed in inner scopes")
+}
+
+func lookMessageNestedType(msg *ast.Message, name string) ast.Type {
+	if name == "" {
+		return msg
+	}
+
+	if pos := strings.IndexByte(name, '.'); pos > 0 {
+		name = name[pos+1:]
+	}
+
+	for _, t := range msg.Types {
+		switch v := t.(type) {
+		case *ast.Message:
+			if v.Name == name {
+				return lookMessageNestedType(msg, name)
+			}
+		case *ast.Enum:
+			if v.Name == name {
+				return v
+			}
+		}
+	}
+
+	return nil
 }
