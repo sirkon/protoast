@@ -1,5 +1,10 @@
 package ast
 
+import (
+	"path"
+	"strings"
+)
+
 var _ Node = &Method{}
 
 // Method представление для метода
@@ -56,4 +61,19 @@ func getMessage(m Type) *Message {
 	}
 
 	return m.(*Stream).Type.(*Message)
+}
+
+// URI метода как принято в gRPC
+func (m *Method) URI() string {
+	dir, _ := path.Split(m.Service.File.Name)
+	dir, _ = path.Split(dir)
+	dir = strings.TrimRight(dir, "/")
+
+	var serviceFullName string
+	if dir != "" {
+		serviceFullName = strings.ReplaceAll(dir, "/", ".") + "."
+	}
+	serviceFullName += m.Service.File.Package
+
+	return "/" + serviceFullName + "/" + m.Name
 }
