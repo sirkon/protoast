@@ -7,6 +7,11 @@ type Sint32 struct {
 	unique
 }
 
+func (*Sint32) equivalent(v ScalarNode) bool {
+	_, ok := v.(*Sint32)
+	return ok
+}
+
 func (*Sint32) genericType() {}
 func (*Sint32) hashable()    {}
 func (*Sint32) node()        {}

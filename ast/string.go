@@ -7,6 +7,11 @@ type String struct {
 	unique
 }
 
+func (*String) equivalent(v ScalarNode) bool {
+	_, ok := v.(*String)
+	return ok
+}
+
 func (*String) genericType() {}
 func (*String) hashable()    {}
 func (*String) node()        {}

@@ -7,6 +7,11 @@ type Sfixed32 struct {
 	unique
 }
 
+func (*Sfixed32) equivalent(v ScalarNode) bool {
+	_, ok := v.(*Sfixed32)
+	return ok
+}
+
 func (*Sfixed32) genericType() {}
 func (*Sfixed32) hashable()    {}
 func (*Sfixed32) node()        {}

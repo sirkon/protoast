@@ -9,8 +9,9 @@ type Enum struct {
 	File      *File
 	ParentMsg *Message
 
-	Name   string
-	Values []*EnumValue
+	Name    string
+	Options []*Option
+	Values  []*EnumValue
 }
 
 func (*Enum) genericType() {}

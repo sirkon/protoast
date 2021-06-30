@@ -16,6 +16,7 @@ type Type interface {
 type ScalarNode interface {
 	Type
 	scalar()
+	equivalent(v ScalarNode) bool
 }
 
 // Hashable типы могущие являться ключами словарей

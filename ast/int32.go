@@ -7,6 +7,11 @@ type Int32 struct {
 	unique
 }
 
+func (*Int32) equivalent(v ScalarNode) bool {
+	_, ok := v.(*Int32)
+	return ok
+}
+
 func (*Int32) genericType() {}
 func (*Int32) hashable()    {}
 func (*Int32) node()        {}

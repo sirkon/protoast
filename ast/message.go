@@ -145,6 +145,6 @@ type MessageField struct {
 	Options  []*Option
 }
 
-func (m *MessageField) isField() (string, Type, []*Option) {
-	return m.Name, m.Type, m.Options
+func (m *MessageField) isField() (string, Type, []*Option, int) {
+	return m.Name, m.Type, m.Options, m.Sequence
 }

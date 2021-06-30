@@ -17,6 +17,7 @@ const (
 	serviceOptions = "google.protobuf.ServiceOptions"
 	methodOptions  = "google.protobuf.MethodOptions"
 	messageOptions = "google.protobuf.MessageOptions"
+	enumOptions    = "google.protobuf.EnumOptions"
 	fieldOptions   = "google.protobuf.FieldOptions"
 
 	enumValueOptions = "google.protobuf.EnumValueOptions"
