@@ -1,5 +1,7 @@
 package ast
 
+import "strings"
+
 var _ Type = &Message{}
 
 // Message представление message
@@ -85,6 +87,21 @@ func (m *Message) Type(name string) Type {
 	}
 
 	return nil
+}
+
+// String референс-имя сообщения, включает в себя название пакета,
+// имена родительских сообщений, в пространстве имён которых оно определено.
+func (m *Message) String() string {
+	var buf strings.Builder
+	if m.ParentMsg == nil {
+		buf.WriteString(m.File.Package)
+	} else {
+		buf.WriteString(m.ParentMsg.String())
+	}
+	buf.WriteByte('.')
+	buf.WriteString(m.Name)
+
+	return buf.String()
 }
 
 // Message поиск подструктуры по имени.
