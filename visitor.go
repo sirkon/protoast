@@ -191,10 +191,10 @@ func (tv *typesVisitor) VisitOption(o *proto.Option) {
 
 	if tv.serviceCtx != nil {
 		tv.serviceCtx.Options = append(tv.serviceCtx.Options, option)
-	} else if tv.msgCtx.item != nil {
-		tv.msgCtx.item.Options = append(tv.msgCtx.item.Options, option)
 	} else if tv.enumCtx.item != nil {
 		tv.enumCtx.item.Options = append(tv.enumCtx.item.Options, option)
+	} else if tv.msgCtx.item != nil {
+		tv.msgCtx.item.Options = append(tv.msgCtx.item.Options, option)
 	} else {
 		tv.file.Options = append(tv.file.Options, option)
 	}
