@@ -176,7 +176,7 @@ func (tv *typesVisitor) VisitOption(o *proto.Option) {
 			parts := strings.Split(o.Constant.Source, ";")
 			switch len(parts) {
 			case 1:
-				tv.file.GoPkg = parts[0]
+				tv.file.GoPath = parts[0]
 			case 2:
 				tv.file.GoPath = parts[0]
 				tv.file.GoPkg = parts[1]
