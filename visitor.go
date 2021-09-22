@@ -162,10 +162,10 @@ func (tv *typesVisitor) VisitOption(o *proto.Option) {
 	var option *ast.Option
 	if tv.serviceCtx != nil {
 		option = tv.feedOption(o, serviceOptions)
-	} else if tv.msgCtx.item != nil {
-		option = tv.feedOption(o, messageOptions)
 	} else if tv.enumCtx.item != nil {
 		option = tv.feedOption(o, enumOptions)
+	} else if tv.msgCtx.item != nil {
+		option = tv.feedOption(o, messageOptions)
 	} else {
 		option = tv.feedOption(o, fileOptions)
 
@@ -690,6 +690,8 @@ func (tv *typesVisitor) VisitEnum(e *proto.Enum) {
 
 	tv.regInfo(enum, e.Comment, e.Position)
 	tv.regFieldInfo(enum, &enum.Name, nil, e.Position)
+
+	tv.enumCtx.item = nil
 }
 
 func (tv *typesVisitor) VisitComment(e *proto.Comment) {}
