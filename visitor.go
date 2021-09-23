@@ -176,10 +176,10 @@ func (tv *typesVisitor) VisitOption(o *proto.Option) {
 			parts := strings.Split(o.Constant.Source, ";")
 			switch len(parts) {
 			case 1:
-				tv.file.GoPath = parts[0]
+				tv.file.GoPath = strings.TrimPrefix(parts[0], "/")
 			case 2:
 				tv.file.GoPath = parts[0]
-				tv.file.GoPkg = parts[1]
+				tv.file.GoPkg = strings.TrimPrefix(parts[1], "/")
 			default:
 				tv.errors(errPosf(
 					o.Constant.Position,
@@ -214,7 +214,11 @@ func (tv *typesVisitor) feedOption(o *proto.Option, opts optionType) *ast.Option
 	return res
 }
 
-func (tv *typesVisitor) literalToOptionValueWithExt(name string, l *proto.Literal, ext *ast.Extension) (result ast.OptionValue) {
+func (tv *typesVisitor) literalToOptionValueWithExt(
+	name string,
+	l *proto.Literal,
+	ext *ast.Extension,
+) (result ast.OptionValue) {
 	defer func() {
 		if result != nil {
 			tv.regInfo(result, nil, l.Position)
@@ -233,11 +237,10 @@ func (tv *typesVisitor) literalToOptionValueWithExt(name string, l *proto.Litera
 		if ext == nil {
 			return &ast.EmbeddedOption{Value: l.Source}
 		}
-		shortName := getShortName(name)
 		// здесь вычисляем реальный тип основываясь на записи в соответствующем расширении
 		for _, f := range ext.Fields {
 			f := f
-			if f.Name == shortName {
+			if "("+ext.File.Package+"."+f.Name+")" == name {
 				value := tv.fromType(f.Type, name, l)
 				if value != nil {
 					return value
@@ -252,10 +255,8 @@ func (tv *typesVisitor) literalToOptionValueWithExt(name string, l *proto.Litera
 	outerLoop:
 		for _, item := range l.OrderedMap {
 			item := item
-			shortName := getShortName(name)
 			for _, f := range ext.Fields {
-				f := f
-				if f.Name == shortName {
+				if "("+ext.File.Package+"."+f.Name+")" == name {
 					switch v := f.Type.(type) {
 					case *ast.Message:
 						for _, f := range v.Fields {
@@ -264,13 +265,31 @@ func (tv *typesVisitor) literalToOptionValueWithExt(name string, l *proto.Litera
 								for _, b := range vv.Branches {
 									b := b
 									if item.Name == b.Name {
-										res.Value[item.Name] = tv.literalToOptionValueWithOneof(item.Name, item.Literal, vv)
+										oneof := tv.literalToOptionValueWithOneof(
+											item.Name,
+											item.Literal,
+											vv,
+										)
+										res.Value[item.Name] = oneof
 										continue outerLoop
 									}
 								}
 							}
 							if item.Name == f.Name {
-								res.Value[item.Name] = tv.literalToOptionValueWithMsg(item.Name, item.Literal, v)
+								msg := tv.literalToOptionValueWithMsg(item.Name, item.Literal, v)
+								// тип поля может быть repeated, позаботимся об этом
+								if _, ok := f.Type.(*ast.Repeated); ok {
+									prev := res.Value[item.Name]
+									if prev != nil {
+										val := prev.(*ast.ArrayOption)
+										val.Value = append(val.Value, msg)
+										res.Value[item.Name] = val
+									} else {
+										res.Value[item.Name] = &ast.ArrayOption{Value: []ast.OptionValue{msg}}
+									}
+								} else {
+									res.Value[item.Name] = msg
+								}
 								continue outerLoop
 							}
 						}
@@ -282,13 +301,16 @@ func (tv *typesVisitor) literalToOptionValueWithExt(name string, l *proto.Litera
 							if vv, ok := f.Type.(*ast.OneOf); ok {
 								for _, b := range vv.Branches {
 									if item.Name == b.Name {
-										res.Value[item.Name] = tv.literalToOptionValueWithOneof(item.Name, item.Literal, vv)
+										oneof := tv.literalToOptionValueWithOneof(item.Name, item.Literal, vv)
+										res.Value[item.Name] = oneof
+
 										continue outerLoop
 									}
 								}
 							}
 							if item.Name == f.Name {
-								res.Value[item.Name] = tv.literalToOptionValueWithMsg(item.Name, item.Literal, msg)
+								withMsg := tv.literalToOptionValueWithMsg(item.Name, item.Literal, msg)
+								res.Value[item.Name] = withMsg
 								continue outerLoop
 							}
 						}
@@ -299,7 +321,6 @@ func (tv *typesVisitor) literalToOptionValueWithExt(name string, l *proto.Litera
 					}
 
 				}
-				continue outerLoop
 			}
 			tv.errors(errPosf(l.Position, "invalid option %s", name))
 		}
@@ -331,7 +352,7 @@ func (tv *typesVisitor) literalToOptionValueWithMsg(name string, l *proto.Litera
 		}
 	outerLoop:
 		for _, item := range l.OrderedMap {
-			shortName := getShortName(name)
+			shortName := shortName(name)
 			for _, f := range msg.Fields {
 				if f.Name == shortName {
 					res.Value[item.Name] = tv.fromType(f.Type, shortName, l)
@@ -346,7 +367,7 @@ func (tv *typesVisitor) literalToOptionValueWithMsg(name string, l *proto.Litera
 		if msg == nil {
 			return &ast.EmbeddedOption{Value: l.Source}
 		}
-		shortName := getShortName(name)
+		shortName := shortName(name)
 		// здесь вычисляем реальный тип основываясь на записи в соответствующем расширении
 		for _, f := range msg.Fields {
 			if f.Name == shortName {
@@ -384,7 +405,7 @@ func (tv *typesVisitor) literalToOptionValueWithOneof(name string, l *proto.Lite
 		if oo == nil {
 			return &ast.EmbeddedOption{Value: l.Source}
 		}
-		shortName := getShortName(name)
+		shortName := shortName(name)
 		// здесь вычисляем реальный тип основываясь на записи в соответствующем расширении
 		for _, b := range oo.Branches {
 			if b.Name == shortName {
@@ -401,7 +422,7 @@ func (tv *typesVisitor) literalToOptionValueWithOneof(name string, l *proto.Lite
 		}
 	outerLoop:
 		for _, item := range l.OrderedMap {
-			shortName := getShortName(name)
+			shortName := shortName(name)
 			for _, b := range oo.Branches {
 				if b.Name == shortName {
 					res.Value[item.Name] = tv.fromType(b.Type, shortName, l)
@@ -417,7 +438,7 @@ func (tv *typesVisitor) literalToOptionValueWithOneof(name string, l *proto.Lite
 	return nil
 }
 
-func getShortName(name string) string {
+func shortName(name string) string {
 	items := strings.Split(strings.Trim(name, `()`), ".")
 	return items[len(items)-1]
 }
@@ -812,30 +833,14 @@ func (tv *typesVisitor) VisitRPC(r *proto.RPC) {
 		}
 	}
 
-	var mos []*ast.MethodOption
 	for _, o := range r.Options {
-		mo := &ast.MethodOption{
-			Name:      o.Name,
-			Extension: tv.optionLookup(o.Name, o.Position, methodOptions),
-		}
-		tv.regInfo(mo, o.Comment, o.Position)
-		tv.regFieldInfo(mo, &mo.Name, nil, o.Position)
-		for _, v := range o.Constant.OrderedMap {
-			value := &ast.MethodOptionValue{
-				Name:  v.Name,
-				Value: v.Source,
-			}
-			tv.regInfo(value, nil, v.Position)
-			tv.regFieldInfo(value, &value.Name, nil, v.Position)
-			tv.regFieldInfo(value, &value.Value, nil, v.Literal.Position)
-			mo.Values = append(mo.Values, value)
-		}
-		mos = append(mos, mo)
+		opt := tv.feedOption(o, methodOptions)
+		tv.regInfo(opt, o.Comment, o.Position)
+		rpc.Options = append(rpc.Options, opt)
 	}
 
 	rpc.Input = req
 	rpc.Output = resp
-	rpc.Options = mos
 
 	tv.service.Methods = append(tv.service.Methods, rpc)
 	tv.regInfo(rpc, r.Comment, r.Position)

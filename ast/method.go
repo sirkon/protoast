@@ -13,31 +13,10 @@ type Method struct {
 	Input  Type
 	Output Type
 
-	Options []*MethodOption
+	Options []*Option
 }
 
 func (m *Method) node() {}
-
-var _ Unique = &MethodOption{}
-
-// MethodOption представление для опции метода
-type MethodOption struct {
-	unique
-
-	Name      string
-	Extension *Extension
-	Values    []*MethodOptionValue
-}
-
-var _ Unique = &MethodOptionValue{}
-
-// MethodOptionValue представление для значения опции метода
-type MethodOptionValue struct {
-	unique
-
-	Name  string
-	Value string
-}
 
 // InputMessage возвращает структуру запроса (минуя оборачивающий Stream, если нужно)
 func (m *Method) InputMessage() *Message {
