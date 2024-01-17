@@ -252,6 +252,9 @@ func (tv *typesVisitor) literalToOptionValueWithExt(
 		res := &ast.MapOption{
 			Value: map[string]ast.OptionValue{},
 		}
+		if ext == nil {
+			return res
+		}
 	outerLoop:
 		for _, item := range l.OrderedMap {
 			item := item
