@@ -10,10 +10,9 @@ import (
 	"text/scanner"
 
 	"github.com/emicklei/proto"
+	"github.com/sirkon/protoast/ast"
 	"github.com/sirkon/protoast/internal/errors"
 	"github.com/sirkon/protoast/internal/namespace"
-
-	"github.com/sirkon/protoast/ast"
 )
 
 // NewBuilder конструктор построителя AST-представления
@@ -174,6 +173,15 @@ func (s *Builder) Position(k ast.Unique) scanner.Position {
 		name = fmt.Sprintf("service %s.%s", v.File.Package, v.Name)
 	case *ast.Extension:
 		name = fmt.Sprintf("extension %s.%s", v.File.Package, v.Name)
+	case *ast.File:
+		ok = true
+		name, _ := s.imports.Abs(v.Name)
+		res = scanner.Position{
+			Filename: name,
+			Offset:   1,
+			Line:     1,
+			Column:   1,
+		}
 	default:
 		name = fmt.Sprintf("%T", v)
 	}
