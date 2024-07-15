@@ -118,7 +118,13 @@ func lookMessageNestedType(msg *ast.Message, name string) ast.Type {
 		switch v := t.(type) {
 		case *ast.Message:
 			if v.Name == name {
-				return lookMessageNestedType(msg, name)
+				// нашли нужный message
+				return v
+			}
+			// ныряем внутрь и ищем там
+			if l := lookMessageNestedType(v, name); l != nil {
+				// нашли внутри - возвращаем
+				return l
 			}
 		case *ast.Enum:
 			if v.Name == name {

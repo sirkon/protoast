@@ -103,6 +103,7 @@ var ignoreOpts = map[optionType]map[string]struct{}{
 		"retention":        {},
 		"targets":          {},
 		"edition_defaults": {},
+		"feature_support":  {},
 	},
 	oneofOptions: {
 		"deprecated": {},

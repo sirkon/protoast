@@ -15,8 +15,10 @@ type OneOf struct {
 func (*OneOf) genericType() {}
 func (*OneOf) node()        {}
 
-var _ Unique = &OneOfBranch{}
-var _ Field = &OneOfBranch{}
+var (
+	_ Unique = &OneOfBranch{}
+	_ Field  = &OneOfBranch{}
+)
 
 // OneOfBranch представление для ветви
 type OneOfBranch struct {

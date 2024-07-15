@@ -140,7 +140,6 @@ func (tv *typesVisitor) VisitService(v *proto.Service) {
 	tv.file.Services = append(tv.file.Services, tv.service)
 	tv.regInfo(tv.service, v.Comment, v.Position)
 	tv.regFieldInfo(tv.service, &tv.service.Name, v.Comment, v.Position)
-
 }
 
 func (tv *typesVisitor) VisitSyntax(s *proto.Syntax) {
@@ -158,6 +157,7 @@ func (tv *typesVisitor) VisitPackage(p *proto.Package) {
 	}
 	tv.regFieldInfo(tv.file, &tv.file.Package, p.Comment, p.Position)
 }
+
 func (tv *typesVisitor) VisitOption(o *proto.Option) {
 	var option *ast.Option
 	if tv.serviceCtx != nil {
@@ -322,7 +322,6 @@ func (tv *typesVisitor) literalToOptionValueWithExt(
 						tv.errors(errPosf(l.Position, "invalid type %T for option %s", f.Type, name))
 						return nil
 					}
-
 				}
 			}
 			tv.errors(errPosf(l.Position, "invalid option %s", name))
@@ -806,7 +805,6 @@ func (tv *typesVisitor) VisitOneofField(o *proto.OneOfField) {
 func (tv *typesVisitor) VisitReserved(r *proto.Reserved) {}
 
 func (tv *typesVisitor) VisitRPC(r *proto.RPC) {
-
 	rpc := &ast.Method{
 		File:    tv.file,
 		Service: tv.service,
@@ -890,7 +888,6 @@ func (tv *typesVisitor) VisitMapField(f *proto.MapField) {
 	t := tv.standardType(f.Type)
 	if t == nil {
 		t = tv.ns.GetType(f.Type)
-
 	}
 	if t == nil {
 		lastIndex := strings.LastIndex(f.Type, ".")
