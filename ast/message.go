@@ -149,8 +149,10 @@ func (m *Message) ScanTypes(inspector func(typ Type) bool) {
 	return
 }
 
-var _ Unique = &MessageField{}
-var _ Field = &MessageField{}
+var (
+	_ Unique = &MessageField{}
+	_ Field  = &MessageField{}
+)
 
 // MessageField представление поля message-а
 type MessageField struct {

@@ -6,8 +6,7 @@ import (
 )
 
 func TestIsErrorTypeNotFound(t *testing.T) {
-	type args struct {
-	}
+	type args struct{}
 	tests := []struct {
 		name string
 		err  error
