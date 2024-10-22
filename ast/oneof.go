@@ -20,6 +20,13 @@ var (
 	_ Field  = &OneOfBranch{}
 )
 
+func (*OneOf) String() string {
+	return "oneof"
+}
+
+var _ Unique = &OneOfBranch{}
+var _ Field = &OneOfBranch{}
+
 // OneOfBranch представление для ветви
 type OneOfBranch struct {
 	unique

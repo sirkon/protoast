@@ -12,6 +12,8 @@ func (*Float64) equivalent(v ScalarNode) bool {
 	return ok
 }
 
+func (*Float64) String() string { return "float64" }
+
 func (*Float64) genericType() {}
 func (*Float64) node()        {}
 func (*Float64) scalar()      {}

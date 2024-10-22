@@ -12,6 +12,8 @@ func (*Bytes) equivalent(v ScalarNode) bool {
 	return ok
 }
 
+func (*Bytes) String() string { return "[]byte" }
+
 func (*Bytes) genericType() {}
 func (*Bytes) node()        {}
 func (*Bytes) scalar()      {}

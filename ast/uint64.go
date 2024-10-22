@@ -12,6 +12,10 @@ func (*Uint64) equivalent(v ScalarNode) bool {
 	return ok
 }
 
+func (*Uint64) String() string {
+	return "uint64"
+}
+
 func (*Uint64) genericType() {}
 func (*Uint64) hashable()    {}
 func (*Uint64) node()        {}

@@ -12,6 +12,8 @@ func (*Float32) equivalent(v ScalarNode) bool {
 	return ok
 }
 
+func (*Float32) String() string { return "float32" }
+
 func (*Float32) genericType() {}
 func (*Float32) node()        {}
 func (*Float32) scalar()      {}

@@ -9,5 +9,6 @@ type Any struct {
 	File *File
 }
 
-func (*Any) genericType() {}
-func (*Any) node()        {}
+func (*Any) String() string { return "any" }
+func (*Any) genericType()   {}
+func (*Any) node()          {}

@@ -12,6 +12,10 @@ func (*String) equivalent(v ScalarNode) bool {
 	return ok
 }
 
+func (*String) String() string {
+	return "string"
+}
+
 func (*String) genericType() {}
 func (*String) hashable()    {}
 func (*String) node()        {}

@@ -12,6 +12,10 @@ func (*Bool) equivalent(v ScalarNode) bool {
 	return ok
 }
 
+func (*Bool) String() string {
+	return "bool"
+}
+
 func (*Bool) genericType() {}
 func (*Bool) node()        {}
 func (*Bool) scalar()      {}

@@ -12,6 +12,10 @@ func (*Uint32) equivalent(v ScalarNode) bool {
 	return ok
 }
 
+func (*Uint32) String() string {
+	return "uint32"
+}
+
 func (*Uint32) genericType() {}
 func (*Uint32) hashable()    {}
 func (*Uint32) node()        {}
