@@ -1,7 +1,6 @@
 package protoast
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 	"text/scanner"
@@ -813,7 +812,6 @@ func (tv *typesVisitor) VisitRPC(r *proto.RPC) {
 
 	req := tv.ns.GetType(r.RequestType)
 	if req == nil {
-		fmt.Println("lol kek")
 		tv.errors(errPosf(r.Position, "unknown type %s", r.RequestType))
 		return
 	}
