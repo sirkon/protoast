@@ -27,12 +27,8 @@ const (
 )
 
 func (tv *typesVisitor) optionLookup(name string, pos scanner.Position, ot optionType) *ast.Extension {
-	if strings.HasPrefix(name, "(") {
-		name = name[1:]
-	}
-	if strings.HasSuffix(name, ")") {
-		name = name[:len(name)-1]
-	}
+	name = optName(name)
+
 	if d, ok := ignoreOpts[ot]; ok {
 		if _, ok := d[name]; ok {
 			return nil
@@ -119,4 +115,19 @@ var ignoreOpts = map[optionType]map[string]struct{}{
 		"deprecated": {},
 		"(google.api.message_visibility).restriction": {},
 	},
+}
+
+func optName(name string) string {
+	if strings.Contains(name, ".") {
+		return name
+	}
+
+	if strings.HasPrefix(name, "(") {
+		name = name[1:]
+	}
+	if strings.HasSuffix(name, ")") {
+		name = name[:len(name)-1]
+	}
+
+	return name
 }
