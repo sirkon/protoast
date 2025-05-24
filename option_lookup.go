@@ -104,6 +104,7 @@ var ignoreOpts = map[optionType]map[string]struct{}{
 		"targets":          {},
 		"edition_defaults": {},
 		"feature_support":  {},
+		"(google.api.field_visibility).restriction": {},
 	},
 	oneofOptions: {
 		"deprecated": {},
@@ -116,5 +117,6 @@ var ignoreOpts = map[optionType]map[string]struct{}{
 	},
 	messageOptions: {
 		"deprecated": {},
+		"(google.api.message_visibility).restriction": {},
 	},
 }

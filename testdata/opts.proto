@@ -3,8 +3,11 @@ syntax = "proto3";
 package sample;
 
 import "common/options.proto";
+import "google/api/visibility.proto";
 
 message User {
+    option (google.api.message_visibility).restriction = "INTERNAL";
+
     string id = 1 [(common.lalala) = "lalala"];
-    string name = 2;
+    string name = 2 [(google.api.field_visibility).restriction = "INTERNAL"];
 }
