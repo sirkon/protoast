@@ -76,8 +76,8 @@ func (tv *typesVisitor) optionLookup(name string, pos scanner.Position, ot optio
 }
 
 const (
-	_messageVisibility = "(google.api.message_visibility).restriction"
-	_fieldVisibility   = "(google.api.field_visibility).restriction"
+	messageVisibility = "(google.api.message_visibility).restriction"
+	fieldVisibility   = "(google.api.field_visibility).restriction"
 )
 
 // options эти игнорируем
@@ -105,7 +105,7 @@ var ignoreOpts = map[optionType]map[string]struct{}{
 		"targets":          {},
 		"edition_defaults": {},
 		"feature_support":  {},
-		_fieldVisibility:   {},
+		fieldVisibility:    {},
 	},
 	oneofOptions: {
 		"deprecated": {},
@@ -117,18 +117,18 @@ var ignoreOpts = map[optionType]map[string]struct{}{
 		"deprecated": {},
 	},
 	messageOptions: {
-		"deprecated":       {},
-		_messageVisibility: {},
+		"deprecated":      {},
+		messageVisibility: {},
 	},
 }
 
-var _visibilityOpts = map[string]struct{}{
-	_messageVisibility: {},
-	_fieldVisibility:   {},
+var visibilityOpts = map[string]struct{}{
+	messageVisibility: {},
+	fieldVisibility:   {},
 }
 
 func optName(name string) string {
-	if _, ok := _visibilityOpts[name]; ok {
+	if _, ok := visibilityOpts[name]; ok {
 		return name
 	}
 
