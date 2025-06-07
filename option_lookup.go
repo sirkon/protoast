@@ -26,13 +26,13 @@ const (
 	// Теоретически есть и другие опции, но они не предоставляются парсером
 )
 
+
+
 func (tv *typesVisitor) optionLookup(name string, pos scanner.Position, ot optionType) *ast.Extension {
-	if strings.HasPrefix(name, "(") {
-		name = name[1:]
-	}
-	if strings.HasSuffix(name, ")") {
-		name = name[:len(name)-1]
-	}
+	// TODO option syntactic errors handling.
+	//  As of now, we just remove opening and closing commas without the second thought.
+	replacer := strings.NewReplacer("(", "", ")", "")
+	name = replacer.Replace(name)
 	if d, ok := ignoreOpts[ot]; ok {
 		if _, ok := d[name]; ok {
 			return nil
