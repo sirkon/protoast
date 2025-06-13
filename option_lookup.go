@@ -5,9 +5,8 @@ import (
 	"strings"
 	"text/scanner"
 
-	"github.com/sirkon/protoast/internal/errors"
-
 	"github.com/sirkon/protoast/ast"
+	"github.com/sirkon/protoast/internal/errors"
 )
 
 type optionType string
@@ -26,18 +25,12 @@ const (
 	// Теоретически есть и другие опции, но они не предоставляются парсером
 )
 
-
-
 func (tv *typesVisitor) optionLookup(name string, pos scanner.Position, ot optionType) *ast.Extension {
-	// TODO option syntactic errors handling.
-	//  As of now, we just remove opening and closing commas without the second thought.
-	replacer := strings.NewReplacer("(", "", ")", "")
-	name = replacer.Replace(name)
-	if d, ok := ignoreOpts[ot]; ok {
-		if _, ok := d[name]; ok {
-			return nil
-		}
+	validated, err := normalizeOptionName(name)
+	if err != nil {
+		tv.errors(errors.Newf("%s parse option value %q: %s", pos, name, err))
 	}
+	name = validated
 
 	var fileFilter func(*ast.File) bool
 	if !strings.ContainsRune(name, '.') {
