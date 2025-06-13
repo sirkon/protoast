@@ -11,6 +11,8 @@ type Option struct {
 	Name      string
 	Value     OptionValue
 	Extension *Extension
+	ExtPath   string
+	ValueType Type
 }
 
 // OptionValue значение опции

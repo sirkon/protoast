@@ -6,10 +6,9 @@ import (
 	"text/scanner"
 
 	"github.com/emicklei/proto"
+	"github.com/sirkon/protoast/ast"
 	"github.com/sirkon/protoast/internal/errors"
 	"github.com/sirkon/protoast/internal/namespace"
-
-	"github.com/sirkon/protoast/ast"
 )
 
 var _ proto.Visitor = &typesVisitor{}
@@ -203,9 +202,12 @@ func (tv *typesVisitor) VisitOption(o *proto.Option) {
 }
 
 func (tv *typesVisitor) feedOption(o *proto.Option, opts optionType) *ast.Option {
+	optExt, optTyp, optionPath := tv.optionLookup(o.Name, o.Position, opts)
 	res := &ast.Option{
 		Name:      o.Name,
-		Extension: tv.optionLookup(o.Name, o.Position, opts),
+		Extension: optExt,
+		ExtPath:   optionPath,
+		ValueType: optTyp,
 	}
 
 	res.Value = tv.literalToOptionValueWithExt(o.Name, &o.Constant, res.Extension)

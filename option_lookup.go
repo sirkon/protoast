@@ -25,12 +25,21 @@ const (
 	// Теоретически есть и другие опции, но они не предоставляются парсером
 )
 
-func (tv *typesVisitor) optionLookup(name string, pos scanner.Position, ot optionType) *ast.Extension {
+func (tv *typesVisitor) optionLookup(
+	name string,
+	pos scanner.Position,
+	ot optionType,
+) (*ast.Extension, ast.Type, string) {
 	validated, err := normalizeOptionName(name)
 	if err != nil {
 		tv.errors(errors.Newf("%s parse option value %q: %s", pos, name, err))
 	}
 	name = validated
+	if d, ok := ignoreOpts[ot]; ok {
+		if _, ok := d[name]; ok {
+			return nil, nil, name
+		}
+	}
 
 	var fileFilter func(*ast.File) bool
 	if !strings.ContainsRune(name, '.') {
@@ -63,12 +72,39 @@ func (tv *typesVisitor) optionLookup(name string, pos scanner.Position, ot optio
 			}
 			for _, f := range e.Fields {
 				if optionName == f.Name {
-					return e
+					return e, f.Type, optionName
 				}
+
+				if strings.HasPrefix(optionName, f.Name+".") {
+					typ := digForTypeOfOption(optionName[len(f.Name)+1:], f.Type)
+					if typ != nil {
+						return e, typ, optionName[len(f.Name)+1:]
+					}
+				}
+
 			}
 		}
 	}
 	tv.errors(errors.Newf("%s unknown option (%s, belong to %s)", pos, name, ot))
+	return nil, nil, ""
+}
+
+func digForTypeOfOption(optName string, t ast.Type) ast.Type {
+	m, ok := t.(*ast.Message)
+	if !ok {
+		return nil
+	}
+
+	for _, field := range m.Fields {
+		if optName == field.Name {
+			return field.Type
+		}
+
+		if strings.HasPrefix(optName, field.Name+".") {
+			return digForTypeOfOption(optName[len(field.Name)+1:], field.Type)
+		}
+	}
+
 	return nil
 }
 
