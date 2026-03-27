@@ -1,9 +1,10 @@
-module github.com/sirkon/protoast
+module github.com/sirkon/protoast/v2
 
-go 1.22
+go 1.26
 
 require (
-	github.com/emicklei/proto v1.13.2
+	github.com/emicklei/proto v1.14.3
+	github.com/sirkon/errors v1.3.3
 	github.com/sirkon/go-format v0.1.2
 	github.com/spaolacci/murmur3 v1.1.0
 	github.com/stretchr/testify v1.9.0

@@ -3,19 +3,26 @@ A library to represent protobuf services definitions shaped into ASTes.
 
 ## Usage
 
-```go
-mapping := map[string]string{
-	"file.proto": "/var/lib/protofiles/file.proto",
+`````go
+prjResolver, err := protoast.NewPathResolver(".", "./vendor")
+if err != nil {
+    returm fmt.Errorf("resolve schema paths")
 }
-files := protoast.NewFiles(mapping)
-ns := protoast.NewBuilder(files, func(err error) {
-	log.Println(err)
+
+protocResolver, err := protoast.NewProtocResolver()
+if err != nil {
+    return fmt.Errorf("resolve protoc distribution protos")
+}
+
+resolver := protoc.WithResolvers(prjResolver, protocResolver)
+ns := protoast.New(resolver, func(err error) {
+    log.Println(err)
 })
 
 // retrieves AST for file.proto
 file, err := ns.AST("file.proto")
 if err != nil {
-	log.Fatal(err)
+    log.Fatal(err)
 }
 
 // output AST of the first service defined in file.proto
