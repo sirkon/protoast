@@ -35,16 +35,16 @@ type ComparableType interface {
 	isComparableTypeType()
 }
 
-// NamedType represents named types. Meaning messages and enums.
-type NamedType interface {
-	ComposableType
-	isNamedTypeType()
-}
-
 // ComposableType represents builtins and named types.
 type ComposableType interface {
 	Type
 	isComposableTypeType()
+}
+
+// NamedType represents named types. Meaning messages and enums.
+type NamedType interface {
+	ComposableType
+	isNamedTypeType()
 }
 
 type isNode struct{}

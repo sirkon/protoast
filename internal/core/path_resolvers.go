@@ -92,26 +92,26 @@ func (r *pathResolverRoot) Resolve(path string) (string, error) {
 	return fullPath, nil
 }
 
-type ResolutionBuilder struct {
+type PathResolversBuilder struct {
 	isProtoc bool
 	roots    []string
 }
 
-func Resolvers() *ResolutionBuilder {
-	return &ResolutionBuilder{}
+func Resolvers() *PathResolversBuilder {
+	return &PathResolversBuilder{}
 }
 
-func (b *ResolutionBuilder) WithProtoc() *ResolutionBuilder {
+func (b *PathResolversBuilder) WithProtoc() *PathResolversBuilder {
 	b.isProtoc = true
 	return b
 }
 
-func (b *ResolutionBuilder) WithRoot(roots ...string) *ResolutionBuilder {
+func (b *PathResolversBuilder) WithRoot(roots ...string) *PathResolversBuilder {
 	b.roots = append(b.roots, roots...)
 	return b
 }
 
-func (b *ResolutionBuilder) Build() ([]PathResolver, error) {
+func (b *PathResolversBuilder) Build() ([]PathResolver, error) {
 	roots := slices.Clone(b.roots)
 	sort.Strings(roots)
 	slices.Compact(roots)

@@ -1,3 +1,5 @@
+//go:build i_have_utopia_at_my_machine
+
 package main
 
 import (
