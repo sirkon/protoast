@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package meta.v1;
+
+option go_package = "utopia/internal/schema-go/meta/v1;pbmeta";
+
+import "google/protobuf/descriptor.proto";
+
+// Custom service options to bind services to codes.
+extend google.protobuf.ServiceOptions {
+  Service service_code = 51234;
+}
+
+// Service provides internal codes for services.
+enum Service {
+  SERVICE_UNSPECIFIED = 0;
+
+  // SERVICE_UTOPIA utopia service code
+  SERVICE_UTOPIA = 1;
+}

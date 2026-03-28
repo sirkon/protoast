@@ -1,1 +1,0 @@
-Component = Dir(string) ':' Object(string);

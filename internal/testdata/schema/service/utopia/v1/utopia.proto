@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package service.utopia.v1;
+
+import "service/utopia/v1/service_hash_download.proto";
+
+
+option go_package = "utopia/internal/schema-go/utopia/v1;pbutopia";
+
+service Service {
+  rpc HashDownload(HashDownloadRequest) returns (HashDownloadResponse);
+}
+
+

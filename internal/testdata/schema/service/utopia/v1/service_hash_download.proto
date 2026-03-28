@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package service.utopia.v1;
+
+import "meta/v1/error.proto";
+import "vendor/buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+
+option go_package = "utopia/internal/schema-go/utopia/v1;pbutopia";
+
+// HashDownloadRequest запрос метода HashDownload.
+message HashDownloadRequest {
+  // hash хеш файла.
+  uint64 hash = 1;
+  // mwdeny хрен знает что такое.
+  uint64 mwdeny = 2;
+}
+
+// HashDownloadResponse ответ метода HashDownload.
+message HashDownloadResponse {
+  meta.v1.Error error = 1 [(buf.validate.field).required = true];
+
+  // hash, тот же самый что отправляли в запросе.
+  uint64 hash = 2;
+  // size размер записи с данным хешом.
+  uint64 size = 3;
+  // malware статус проверки антивирусом.
+  Malware malware = 4;
+}
+
+message Malware {
+  MalwareStatus status = 1;
+  MalwarePayload payload = 2;
+}
+
+message MalwarePayload {
+  string virus = 1;
+  MalwareDanger danger = 2;
+  google.protobuf.Timestamp last_check = 3;
+}
+
+enum MalwareStatus {
+  MALWARE_STATUS_UNSPECIFIED = 0;
+  MALWARE_STATUS_OK = 1;
+  MALWARE_STATUS_INFECTED = 2;
+  MALWARE_STATUS_UNKNOWN = 3;
+}
+
+enum MalwareDanger {
+  MALWARE_DANGER_UNSPECIFIED = 0;
+  MALWARE_DANGER_LOW = 1;
+  MALWARE_DANGER_MEDIUM = 2;
+  MALWARE_DANGER_HIGH = 3;
+}
+
