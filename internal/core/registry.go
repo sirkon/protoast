@@ -15,6 +15,9 @@ type Registry struct {
 	protos   map[string]*proto.Proto
 	registry map[string]proto.Visitee
 	scopes   map[proto.Visitee]string
+
+	cache   map[proto.Visitee]Node
+	ftcache map[*MessageField]Type
 }
 
 func NewRegistry(resolvers ...PathResolver) (*Registry, error) {
@@ -23,6 +26,8 @@ func NewRegistry(resolvers ...PathResolver) (*Registry, error) {
 		protos:    map[string]*proto.Proto{},
 		registry:  map[string]proto.Visitee{},
 		scopes:    map[proto.Visitee]string{},
+		cache:     map[proto.Visitee]Node{},
+		ftcache:   map[*MessageField]Type{},
 	}
 	if err := res.demarkFile("google/protobuf/descriptor.proto"); err != nil {
 		return nil, errors.Wrap(err, "set up proto descriptor")
@@ -96,6 +101,38 @@ func (r *Registry) protoFile(path string) (*proto.Proto, error) {
 	r.protos[path] = parsed
 	parsed.Filename = path
 	return parsed, nil
+}
+
+func (r *Registry) optionContextFile() *proto.Message {
+	return r.registry[registryOptionsFile].(*proto.Message)
+}
+
+func (r *Registry) optionContextMessage() *proto.Message {
+	return r.registry[registryOptionsMessage].(*proto.Message)
+}
+
+func (r *Registry) optionContextMessageField() *proto.Message {
+	return r.registry[registryOptionsMessageField].(*proto.Message)
+}
+
+func (r *Registry) optionContextEnum() *proto.Message {
+	return r.registry[registryOptionsEnum].(*proto.Message)
+}
+
+func (r *Registry) optionContextEnumValue() *proto.Message {
+	return r.registry[registryOptionsEnumValue].(*proto.Message)
+}
+
+func (r *Registry) optionContextOneof() *proto.Message {
+	return r.registry[registryOptionsOneof].(*proto.Message)
+}
+
+func (r *Registry) optionContextService() *proto.Message {
+	return r.registry[registryOptionsService].(*proto.Message)
+}
+
+func (r *Registry) optionContextMethod() *proto.Message {
+	return r.registry[registryOptionsMethod].(*proto.Message)
 }
 
 func readProtoFile(protoName string) (*proto.Proto, error) {

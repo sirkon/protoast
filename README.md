@@ -38,7 +38,7 @@ func main() {
         panic(err)
     }
 
-    f, err := registry.Proto("service/utopia/v1/method_hash_download.proto")
+    f, err := registry.Proto("service/utopia/v1/service_hash_download.proto")
     if err != nil {
         panic(err)
     }

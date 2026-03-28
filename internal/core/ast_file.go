@@ -8,14 +8,17 @@ import (
 
 type File struct {
 	isNode
+	isNodeOptionable
 
 	proto *proto.Proto
 }
 
+// Name returns file name.
 func (f *File) Name() string {
 	return f.proto.Filename
 }
 
+// Package returns package value.
 func (f *File) Package() string {
 	for _, element := range f.proto.Elements {
 		v, ok := element.(*proto.Package)
@@ -28,14 +31,12 @@ func (f *File) Package() string {
 }
 
 // Messages defined at the top level.
-func (f *File) Messages() iter.Seq[*Message] {
+func (f *File) Messages(r *Registry) iter.Seq[*Message] {
 	return func(yield func(*Message) bool) {
 		for _, element := range f.proto.Elements {
 			v, ok := element.(*proto.Message)
 			if ok && !v.IsExtend {
-				if !yield(&Message{
-					proto: v,
-				}) {
+				if !yield(r.wrap(v).(*Message)) {
 					return
 				}
 			}
@@ -44,27 +45,24 @@ func (f *File) Messages() iter.Seq[*Message] {
 }
 
 // Message returns a message with the given name.
-func (f *File) Message(name string) *Message {
+func (f *File) Message(r *Registry, name string) *Message {
 	for _, element := range f.proto.Elements {
 		v, ok := element.(*proto.Message)
 		if ok && v.Name == name {
-			return &Message{
-				proto: v,
-			}
+			return r.wrap(v).(*Message)
 		}
 	}
 
 	return nil
 }
 
-func (f *File) Enums() iter.Seq[*Enum] {
+// Enums defined at the top level.
+func (f *File) Enums(r *Registry) iter.Seq[*Enum] {
 	return func(yield func(*Enum) bool) {
 		for _, element := range f.proto.Elements {
 			v, ok := element.(*proto.Enum)
 			if ok {
-				if !yield(&Enum{
-					proto: v,
-				}) {
+				if !yield(r.wrap(v).(*Enum)) {
 					return
 				}
 			}
@@ -72,14 +70,13 @@ func (f *File) Enums() iter.Seq[*Enum] {
 	}
 }
 
-func (f *File) Enum(name string) *Enum {
+// Enum returns an enum with the given name.
+func (f *File) Enum(r *Registry, name string) *Enum {
 	for _, element := range f.proto.Elements {
 		v, ok := element.(*proto.Enum)
 		if ok {
 			if v.Name == name {
-				return &Enum{
-					proto: v,
-				}
+				return r.wrap(v).(*Enum)
 			}
 		}
 	}
@@ -87,7 +84,8 @@ func (f *File) Enum(name string) *Enum {
 	return nil
 }
 
-func (f *File) Types() iter.Seq[NamedType] {
+// Types returns named types defined at the top level.
+func (f *File) Types(r *Registry) iter.Seq[NamedType] {
 	return func(yield func(levelType NamedType) bool) {
 		for _, element := range f.proto.Elements {
 			var value NamedType
@@ -96,13 +94,9 @@ func (f *File) Types() iter.Seq[NamedType] {
 				if v.IsExtend {
 					continue
 				}
-				value = &Message{
-					proto: v,
-				}
+				value = r.wrap(v).(NamedType)
 			case *proto.Enum:
-				value = &Enum{
-					proto: v,
-				}
+				value = r.wrap(v).(NamedType)
 			}
 			if value != nil {
 				if !yield(value) {
@@ -113,7 +107,8 @@ func (f *File) Types() iter.Seq[NamedType] {
 	}
 }
 
-func (f *File) Type(typename string) NamedType {
+// Type returns a named type with the given name.
+func (f *File) Type(r *Registry, typename string) NamedType {
 	for _, element := range f.proto.Elements {
 		switch v := element.(type) {
 		case *proto.Message:
@@ -121,20 +116,32 @@ func (f *File) Type(typename string) NamedType {
 				continue
 			}
 
-			return &Message{
-				proto: v,
-			}
+			return r.wrap(v).(*Message)
 
 		case *proto.Enum:
 			if v.Name != typename {
 				continue
 			}
 
-			return &Enum{
-				proto: v,
-			}
+			return r.wrap(v).(*Enum)
 		}
 	}
 
 	return nil
+}
+
+func (f *File) Everything(r *Registry) iter.Seq[Node] {
+	return func(yield func(Node) bool) {
+		for _, e := range f.proto.Elements {
+			if v, ok := e.(*proto.Option); ok {
+				if !yield(r.wrapOption(v, r.optionContextFile())) {
+					return
+				}
+				continue
+			}
+			if !yield(r.wrap(e)) {
+				return
+			}
+		}
+	}
 }

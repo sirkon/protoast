@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package service.utopia.v1;
+
+option go_package = "utopia/internal/schema-go/utopia/v1;pbutopia";
+
+enum ErrorCode {
+  ERROR_CODE_UNSPECIFIED = 0;
+  ERROR_CODE_OK = 200;
+  ERROR_CODE_INTERNAL = 500;
+  ERROR_CODE_NOT_IMPLEMENTED = 1000;
+}

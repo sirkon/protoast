@@ -2,9 +2,16 @@ package core
 
 import (
 	"strings"
+
+	"github.com/emicklei/proto"
 )
 
-func (r *Registry) resolveName(scope, name string) (string, bool) {
+func (r *Registry) resolveName(scope proto.Visitee, name string) (string, bool) {
+	s := r.scopes[scope]
+	return r.resolveNameRaw(s, name)
+}
+
+func (r *Registry) resolveNameRaw(scope, name string) (string, bool) {
 	if strings.HasPrefix(name, ".") {
 		_, ok := r.registry[name]
 		return name, ok

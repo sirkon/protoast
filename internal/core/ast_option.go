@@ -18,7 +18,7 @@ type Option struct {
 
 func newOption(r *Registry, scope string, class *proto.Message, option *proto.Option) *Option {
 	name := parenthesisReplacer.Replace(option.Name)
-	name, ok := r.resolveName(scope, name)
+	name, ok := r.resolveNameRaw(scope, name)
 	var field *proto.NormalField
 	if ok {
 		field = r.registry[name].(*proto.NormalField)
@@ -42,12 +42,13 @@ func newOption(r *Registry, scope string, class *proto.Message, option *proto.Op
 		panic("option field not found")
 	}
 
-	return &Option{
+	res := &Option{
 		registry:         r,
 		protoOptionClass: class,
 		protoOptionField: field,
 		protoOption:      option,
 	}
+	return res
 }
 
 func (o *Option) Name() string {
@@ -107,14 +108,14 @@ func namedOption[T proto.Visitee](r *Registry, name string, scope, className str
 }
 
 const (
-	registryOptionsFile          = ".google.protobuf.FileOptions"
-	registryOptionsMessage       = ".google.protobuf.MessageOptions"
-	registryOptionsMessageFields = ".google.protobuf.FieldOptions"
-	registryOptionsEnum          = ".google.protobuf.EnumOptions"
-	registryOptionsEnumValue     = ".google.protobuf.EnumValueOptions"
-	registryOptionsOneof         = ".google.protobuf.OneofOptions"
-	registryOptionsService       = ".google.protobuf.ServiceOptions"
-	registryOptionsMethod        = ".google.protobuf.MethodOptions"
+	registryOptionsFile         = ".google.protobuf.FileOptions"
+	registryOptionsMessage      = ".google.protobuf.MessageOptions"
+	registryOptionsMessageField = ".google.protobuf.FieldOptions"
+	registryOptionsEnum         = ".google.protobuf.EnumOptions"
+	registryOptionsEnumValue    = ".google.protobuf.EnumValueOptions"
+	registryOptionsOneof        = ".google.protobuf.OneofOptions"
+	registryOptionsService      = ".google.protobuf.ServiceOptions"
+	registryOptionsMethod       = ".google.protobuf.MethodOptions"
 )
 
 var parenthesisReplacer = strings.NewReplacer("(", "", ")", "")

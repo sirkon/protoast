@@ -31,30 +31,47 @@ func (r *Registry) NodeParent(node Node) Node {
 	case *Repeated:
 		return r.NodeParent(n.Type)
 	case *Message:
-		return wrapEmicklei(n.proto.Parent)
+		return r.wrap(n.proto.Parent)
 	case *MessageField:
-		switch p := n.payload.(type) {
-		case *isEmickleiNormalField:
-			return wrapEmicklei(p.asProto().Parent)
-		case *isEmickleiOneOf:
-			return wrapEmicklei(p.asProto().Parent)
-		case *isEmickleiMapField:
-			return wrapEmicklei(p.asProto().Parent)
+		switch p := n.proto.(type) {
+		case *proto.NormalField:
+			return r.wrap(p.Parent)
+		case *proto.Oneof:
+			return r.wrap(p.Parent)
+		case *proto.MapField:
+			return r.wrap(p.Parent)
 		default:
 			panic(errors.Newf("unsupported message field type: %T", p))
 		}
 	case *Enum:
-		return wrapEmicklei(n.proto.Parent)
+		return r.wrap(n.proto.Parent)
 	case *EnumValue:
-		return wrapEmicklei(n.proto.Parent)
+		return r.wrap(n.proto.Parent)
 	case *OneOf:
-		return wrapEmicklei(n.proto.Parent)
+		return r.wrap(n.proto.Parent)
 	case *OneOfBranch:
-		return wrapEmicklei(n.proto.Parent)
+		return r.wrap(n.proto.Parent)
 	case *Service:
-		return wrapEmicklei(n.proto.Parent)
+		return r.wrap(n.proto.Parent)
 	case *Method:
-		return wrapEmicklei(n.proto.Parent)
+		return r.wrap(n.proto.Parent)
+	case *Reserved:
+		return r.wrap(n.proto.Parent)
+	case *Import:
+		return r.wrap(n.proto.Parent)
+	case *Syntax:
+		return r.wrap(n.proto.Parent)
+	case *Package:
+		return r.wrap(n.proto.Parent)
+	case *Option:
+		return r.wrap(n.protoOption.Parent)
+	case *OptionValue:
+		switch w := n.option.protoOption.Parent.(type) {
+		case *proto.Option:
+			return r.wrapOption(w, n.option.protoOptionClass)
+		default:
+			return r.wrap(n.option.protoOption.Parent)
+		}
 	case *File:
 		return nil
 	default:
@@ -74,33 +91,6 @@ func (r *Registry) NodeHierarchy(node Node) iter.Seq[Node] {
 	}
 }
 
-func (r *Registry) TypeIsDefined(typ Type, ref string) bool {
-	switch t := typ.(type) {
-	case *Message:
-		return t.proto == r.registry[ref]
-	case *Enum:
-		return t.proto == r.registry[ref]
-	}
-
-	return false
-}
-
-func (r *Registry) TypeIsGoogleProtobufAny(typ Type) bool {
-	return r.TypeIsDefined(typ, ".google.protobuf.Any")
-}
-
-func (r *Registry) TypeIsGoogleProtobufEmpty(typ Type) bool {
-	return r.TypeIsDefined(typ, ".google.protobuf.Empty")
-}
-
-func (r *Registry) TypeIsGoogleProtobufTimestamp(typ Type) bool {
-	return r.TypeIsDefined(typ, ".google.protobuf.Timestamp")
-}
-
-func (r *Registry) TypeIsGoogleProtobufDuration(typ Type) bool {
-	return r.TypeIsDefined(typ, ".google.protobuf.Duration")
-}
-
 func (r *Registry) getTypeByName(scopeOf proto.Visitee, name string) (res Type) {
 	defer func() {
 		if v, ok := scopeOf.(*proto.NormalField); ok {
@@ -117,7 +107,7 @@ func (r *Registry) getTypeByName(scopeOf proto.Visitee, name string) (res Type) 
 	}
 
 	scope := r.scopes[scopeOf]
-	resolveName, ok := r.resolveName(scope, name)
+	resolveName, ok := r.resolveNameRaw(scope, name)
 	if !ok {
 		return nil
 	}
@@ -127,29 +117,48 @@ func (r *Registry) getTypeByName(scopeOf proto.Visitee, name string) (res Type) 
 		return nil
 	}
 
-	if v, ok := wrapEmicklei(obj).(Type); ok {
+	if v, ok := r.wrap(obj).(Type); ok {
 		return v
 	}
 
 	panic(errors.Newf("node %T does not represent a type", obj))
 }
 
-func wrapEmicklei(t proto.Visitee) Node {
+func (r *Registry) wrap(t proto.Visitee) (res Node) {
+	if v, ok := r.cache[t]; ok {
+		return v
+	}
+	defer func() {
+		r.cache[t] = res
+	}()
+
 	switch n := t.(type) {
 	case *proto.Message:
 		return &Message{
+			proto: n,
+		}
+	case *proto.NormalField:
+		return &MessageField{
 			proto: n,
 		}
 	case *proto.Enum:
 		return &Enum{
 			proto: n,
 		}
+	case *proto.EnumField:
+		return &EnumValue{
+			proto: n,
+		}
 	case *proto.Oneof:
-		return &OneOf{
+		return &MessageField{
+			proto: n,
+		}
+	case *proto.OneOfField:
+		return &OneOfBranch{
 			proto: n,
 		}
 	case *proto.MapField:
-		return &Map{
+		return &MessageField{
 			proto: n,
 		}
 	case *proto.Proto:
@@ -164,9 +173,29 @@ func wrapEmicklei(t proto.Visitee) Node {
 		return &Method{
 			proto: n,
 		}
+	case *proto.Import:
+		return &Import{
+			proto: n,
+		}
+	case *proto.Reserved:
+		return &Reserved{
+			proto: n,
+		}
+	case *proto.Syntax:
+		return &Syntax{
+			proto: n,
+		}
+	case *proto.Package:
+		return &Package{
+			proto: n,
+		}
 	default:
 		panic(errors.Newf("unsupported type %T", t))
 	}
+}
+
+func (r *Registry) wrapOption(option *proto.Option, where *proto.Message) Node {
+	return newOption(r, r.scopes[option], where, option)
 }
 
 func builtinType(name string) BuiltinType {
@@ -176,7 +205,7 @@ func builtinType(name string) BuiltinType {
 	}
 
 	if name == "bytes" {
-		return &Bytes{}
+		return bytesTypeValue
 	}
 
 	return nil
@@ -184,35 +213,53 @@ func builtinType(name string) BuiltinType {
 
 func builtinComparableType(name string) ComparableType {
 	switch name {
-	case "double":
-		return &Double{}
 	case "float":
-		return &Float{}
+		return floatTypeValue
+	case "double":
+		return doubleTypeValue
 	case "int32":
-		return &Int32{}
+		return int32TypeValue
 	case "int64":
-		return &Int64{}
+		return int64TypeValue
 	case "uint32":
-		return &Uint32{}
+		return uint32TypeValue
 	case "uint64":
-		return &Uint64{}
+		return uint64TypeValue
 	case "sint32":
-		return &Sint32{}
+		return sint32TypeValue
 	case "sint64":
-		return &Sint64{}
+		return sint64TypeValue
 	case "fixed32":
-		return &Fixed32{}
+		return fixed32TypeValue
 	case "fixed64":
-		return &Fixed64{}
+		return fixed64TypeValue
 	case "sfixed32":
-		return &Sfixed32{}
+		return sfixed32TypeValue
 	case "sfixed64":
-		return &Sfixed64{}
+		return sfixed64TypeValue
 	case "bool":
-		return &Bool{}
+		return boolTypeValue
 	case "string":
-		return &String{}
+		return stringTypeValue
 	}
 
 	return nil
 }
+
+var (
+	boolTypeValue     = &Bool{}
+	floatTypeValue    = &Float{}
+	doubleTypeValue   = &Double{}
+	int32TypeValue    = &Int32{}
+	int64TypeValue    = &Int64{}
+	uint32TypeValue   = &Uint32{}
+	uint64TypeValue   = &Uint64{}
+	sint32TypeValue   = &Sint32{}
+	sint64TypeValue   = &Sint64{}
+	fixed32TypeValue  = &Fixed32{}
+	fixed64TypeValue  = &Fixed64{}
+	sfixed32TypeValue = &Sfixed32{}
+	sfixed64TypeValue = &Sfixed64{}
+	stringTypeValue   = &String{}
+	bytesTypeValue    = &Bytes{}
+)

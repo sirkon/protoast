@@ -2,10 +2,88 @@ package core
 
 import (
 	"iter"
+	"slices"
 	"text/scanner"
+
+	"github.com/emicklei/proto"
 
 	"github.com/sirkon/protoast/v2/internal/errors"
 )
+
+func (r *Registry) NodeIndex(node Node) string {
+	switch n := node.(type) {
+	case *Message:
+		return r.scopes[n.proto]
+	case *Enum:
+		return r.scopes[n.proto]
+	case *Service:
+		return r.scopes[n.proto]
+	case *Method:
+		return r.scopes[n.proto]
+	case *MessageField:
+		switch m := n.proto.(type) {
+		case *proto.NormalField:
+			return r.scopes[m]
+		case *proto.Oneof:
+			return r.scopes[m]
+		case *proto.MapField:
+			return r.scopes[m]
+		default:
+			return ""
+		}
+	case *EnumValue:
+		return r.scopes[n.proto]
+	case *OneOf:
+		return r.scopes[n.proto]
+	case *OneOfBranch:
+		return r.scopes[n.proto]
+	case *Map:
+		return r.scopes[n.proto]
+	default:
+		return ""
+	}
+}
+
+func (r *Registry) NodeDescription(node Node) string {
+	switch n := node.(type) {
+	case *File:
+		return "file"
+	case *Syntax:
+		return "syntax"
+	case *Package:
+		return "package"
+	case *Import:
+		return "import"
+	case *Option:
+		return "option"
+	case *Message:
+		return "message"
+	case *Enum:
+		return "enum"
+	case *Service:
+		return "service"
+	case *Method:
+		return "method"
+	case *MessageField:
+		return "message field"
+	case *EnumValue:
+		return "enum value"
+	case *OneOf:
+		return "oneof"
+	case *OneOfBranch:
+		return "oneof branch"
+	case *Map:
+		return "map[" + r.NodeDescription(n.Key()) + ", " + r.NodeDescription(n.Value(r)) + "] field"
+	case *Repeated:
+		return "[]" + r.NodeDescription(n.Type)
+	case *OptionValue:
+		return "option value"
+	case *Reserved:
+		return "reserved"
+	default:
+		panic(errors.Newf("unsupported node type: %T", node))
+	}
+}
 
 func (r *Registry) Comment(node Node) []string {
 	switch n := node.(type) {
@@ -14,16 +92,16 @@ func (r *Registry) Comment(node Node) []string {
 			return n.proto.Comment.Lines
 		}
 	case *MessageField:
-		switch p := n.payload.(type) {
-		case *isEmickleiNormalField:
+		switch p := n.proto.(type) {
+		case *proto.NormalField:
 			if p.Comment != nil {
 				return p.Comment.Lines
 			}
-		case *isEmickleiOneOf:
+		case *proto.Oneof:
 			if p.Comment != nil {
 				return p.Comment.Lines
 			}
-		case *isEmickleiMapField:
+		case *proto.MapField:
 			if p.Comment != nil {
 				return p.Comment.Lines
 			}
@@ -58,12 +136,38 @@ func (r *Registry) Comment(node Node) []string {
 		if n.proto.Comment != nil {
 			return n.proto.Comment.Lines
 		}
+	case *Reserved:
+		if n.proto.Comment != nil {
+			return n.proto.Comment.Lines
+		}
+	case *Import:
+		if n.proto.Comment != nil {
+			return n.proto.Comment.Lines
+		}
+	case *Syntax:
+		if n.proto.Comment != nil {
+			return n.proto.Comment.Lines
+		}
+	case *Package:
+		if n.proto.Comment != nil {
+			return n.proto.Comment.Lines
+		}
 	}
 
 	return nil
 }
 
-func (r *Registry) Pos(node Node) scanner.Position {
+func (r *Registry) Pos(node Node) (res scanner.Position) {
+	defer func() {
+		if res.Filename != "" {
+			return
+		}
+
+		nodes := slices.Collect(r.NodeHierarchy(node))
+		last := nodes[len(nodes)-1]
+		file := last.(*File)
+		res.Filename = file.proto.Filename
+	}()
 	switch n := node.(type) {
 	case *File:
 		return scanner.Position{
@@ -73,13 +177,13 @@ func (r *Registry) Pos(node Node) scanner.Position {
 	case *Message:
 		return n.proto.Position
 	case *MessageField:
-		switch p := n.payload.(type) {
-		case *isEmickleiNormalField:
-			return p.asProto().Position
-		case *isEmickleiOneOf:
-			return p.asProto().Position
-		case *isEmickleiMapField:
-			return p.asProto().Position
+		switch p := n.proto.(type) {
+		case *proto.NormalField:
+			return p.Position
+		case *proto.Oneof:
+			return p.Position
+		case *proto.MapField:
+			return p.Position
 		default:
 			panic(errors.Newf("unsupported message field type: %T", p))
 		}
@@ -121,12 +225,20 @@ func (r *Registry) Pos(node Node) scanner.Position {
 		return n.proto.Position
 	case *Method:
 		return n.proto.Position
+	case *Reserved:
+		return n.proto.Position
+	case *Import:
+		return n.proto.Position
+	case *Syntax:
+		return n.proto.Position
+	case *Package:
+		return n.proto.Position
 	default:
 		panic(errors.Newf("unsupported node type: %T", n))
 	}
 }
 
-func (r *Registry) Options(node Node) iter.Seq[*Option] {
+func (r *Registry) Options(node NodeOptionable) iter.Seq[*Option] {
 	switch n := node.(type) {
 	case *File:
 		return seqOptions(r, n.Package(), registryOptionsFile, n.proto.Elements)
@@ -134,13 +246,13 @@ func (r *Registry) Options(node Node) iter.Seq[*Option] {
 		scope := r.scopes[n.proto]
 		return seqOptions(r, scope, registryOptionsMessage, n.proto.Elements)
 	case *MessageField:
-		switch p := n.payload.(type) {
-		case *isEmickleiNormalField:
-			return seqOptions(r, r.scopes[p.asProto()], registryOptionsMessageFields, p.Options)
-		case *isEmickleiOneOf:
-			return seqOptions(r, r.scopes[p.asProto()], registryOptionsOneof, p.Elements)
-		case *isEmickleiMapField:
-			return seqOptions(r, r.scopes[p.asProto()], registryOptionsMessageFields, p.Options)
+		switch p := n.proto.(type) {
+		case *proto.NormalField:
+			return seqOptions(r, r.scopes[p], registryOptionsMessageField, p.Options)
+		case *proto.Oneof:
+			return seqOptions(r, r.scopes[p], registryOptionsOneof, p.Elements)
+		case *proto.MapField:
+			return seqOptions(r, r.scopes[p], registryOptionsMessageField, p.Options)
 		default:
 			panic(errors.Newf("unsupported payload type: %T", n))
 		}
@@ -164,7 +276,7 @@ func (r *Registry) Options(node Node) iter.Seq[*Option] {
 	}
 }
 
-func (r *Registry) OptionNamed(node Node, name string) *Option {
+func (r *Registry) OptionNamed(node NodeOptionable, name string) *Option {
 	switch n := node.(type) {
 	case *File:
 		return namedOption(r, name, n.Package(), registryOptionsFile, n.proto.Elements)
@@ -172,13 +284,13 @@ func (r *Registry) OptionNamed(node Node, name string) *Option {
 		scope := r.scopes[n.proto]
 		return namedOption(r, name, scope, registryOptionsMessage, n.proto.Elements)
 	case *MessageField:
-		switch p := n.payload.(type) {
-		case *isEmickleiNormalField:
-			return namedOption(r, name, r.scopes[p.asProto()], registryOptionsMessageFields, p.Options)
-		case *isEmickleiOneOf:
-			return namedOption(r, name, r.scopes[p.asProto()], registryOptionsOneof, p.Elements)
-		case *isEmickleiMapField:
-			return namedOption(r, name, r.scopes[p.asProto()], registryOptionsMessageFields, p.Options)
+		switch p := n.proto.(type) {
+		case *proto.Message:
+			return namedOption(r, name, r.scopes[p], registryOptionsMessageField, p.Elements)
+		case *proto.Oneof:
+			return namedOption(r, name, r.scopes[p], registryOptionsOneof, p.Elements)
+		case *proto.MapField:
+			return namedOption(r, name, r.scopes[p], registryOptionsMessageField, p.Options)
 		default:
 			panic(errors.Newf("unsupported payload type: %T", n))
 		}

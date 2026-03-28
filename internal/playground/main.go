@@ -1,5 +1,3 @@
-//go:build i_have_utopia_at_my_machine
-
 package main
 
 import (
@@ -11,16 +9,7 @@ import (
 )
 
 func main() {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		panic(err)
-	}
-
-	if err := os.Chdir(home); err != nil {
-		panic(err)
-	}
-
-	if err := os.Chdir(filepath.Join("Sources", "work", "utopia", "internal", "schema")); err != nil {
+	if err := os.Chdir(filepath.Join("internal", "testdata", "schema")); err != nil {
 		panic(err)
 	}
 
@@ -34,7 +23,7 @@ func main() {
 		panic(err)
 	}
 
-	f, err := registry.Proto("service/utopia/v1/method_hash_download.proto")
+	f, err := registry.Proto("service/utopia/v1/service_hash_download.proto")
 	if err != nil {
 		panic(err)
 	}

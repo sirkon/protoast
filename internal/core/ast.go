@@ -9,6 +9,11 @@ type Node interface {
 	isNodeType()
 }
 
+type NodeOptionable interface {
+	Node
+	isNodeOptionableType()
+}
+
 // FieldNode represents message fields, oneof branches and enum values.
 type FieldNode interface {
 	Node
@@ -49,6 +54,8 @@ type NamedType interface {
 
 type isNode struct{}
 
+type isNodeOptionable struct{}
+
 type isFieldNode struct {
 	isNode
 }
@@ -74,6 +81,7 @@ type isComparableType struct {
 }
 
 func (*isNode) isNodeType()                     {}
+func (*isNodeOptionable) isNodeOptionableType() {}
 func (*isFieldNode) isFieldNodeType()           {}
 func (*isType) isTypeType()                     {}
 func (*isBuiltinType) isBuiltinTypeType()       {}

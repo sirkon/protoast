@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package meta.v1;
+
+import "google/protobuf/any.proto";
+import "meta/v1/services.proto";
+
+option go_package = "utopia/internal/schema-go/meta/v1;pbmeta";
+
+message Error {
+  Service service = 1;
+  int32 code = 2;
+  string message = 3;
+  google.protobuf.Any payload = 4;
+}

@@ -10,73 +10,81 @@ import (
 
 type Message struct {
 	isNamedType
+	isNodeOptionable
 
 	proto *proto.Message
 }
 
 type MessageField struct {
 	isFieldNode
+	isNodeOptionable
 
-	payload messageFieldTypeVariant
+	proto proto.Visitee
 }
 
+// Name returns message name.
 func (m *Message) Name() string {
 	return m.proto.Name
 }
 
-func (m *Message) Fields() iter.Seq[*MessageField] {
+func (m *Message) IsExtension() bool {
+	return m.proto.IsExtend
+}
+
+// Fields returns top level fields of the message.
+func (m *Message) Fields(r *Registry) iter.Seq[*MessageField] {
 	return func(yield func(*MessageField) bool) {
 		for _, element := range m.proto.Elements {
-			var field MessageField
-			switch t := element.(type) {
+			var field Node
+			switch e := element.(type) {
 			case *proto.NormalField:
-				field.payload = asEmickleiNormalField(t)
-			case *proto.Oneof:
-				field.payload = asEmickleiOneOf(t)
+				field = r.wrap(e)
+			case *proto.OneOfField:
+				field = r.wrap(e)
 			case *proto.MapField:
-				field.payload = asEmickleiMapField(t)
+				field = r.wrap(e)
 			default:
 				continue
 			}
-
-			if !yield(&field) {
+			if !yield(field.(*MessageField)) {
 				return
 			}
 		}
 	}
 }
 
-func (m *Message) Field(name string) *MessageField {
-	var field MessageField
-
+// Field returns top level field with the given name.
+func (m *Message) Field(r *Registry, name string) *MessageField {
 	for _, element := range m.proto.Elements {
+		var p proto.Visitee
 		switch t := element.(type) {
 		case *proto.NormalField:
 			if t.Name != name {
 				continue
 			}
-			field.payload = asEmickleiNormalField(t)
+			p = t
 		case *proto.Oneof:
 			if t.Name != name {
 				continue
 			}
-			field.payload = asEmickleiOneOf(t)
+			p = t
 		case *proto.MapField:
 			if t.Name != name {
 				continue
 			}
-			field.payload = asEmickleiMapField(t)
+			p = t
 		default:
 			continue
 		}
 
-		return &field
+		return r.wrap(p).(*MessageField)
 	}
 
 	return nil
 }
 
-func (m *Message) Types() iter.Seq[NamedType] {
+// Types returns named types defined at the top level of the message.
+func (m *Message) Types(r *Registry) iter.Seq[NamedType] {
 	return func(yield func(NamedType) bool) {
 		for _, element := range m.proto.Elements {
 			var value NamedType
@@ -86,13 +94,9 @@ func (m *Message) Types() iter.Seq[NamedType] {
 					continue
 				}
 
-				value = &Message{
-					proto: e,
-				}
+				value = r.wrap(e).(*Message)
 			case *proto.Enum:
-				value = &Enum{
-					proto: e,
-				}
+				value = r.wrap(e).(*Enum)
 			}
 			if value != nil {
 				if !yield(value) {
@@ -103,7 +107,8 @@ func (m *Message) Types() iter.Seq[NamedType] {
 	}
 }
 
-func (m *Message) Type(typename string) NamedType {
+// Type returns top level named type with given name defined at the top level of the message.
+func (m *Message) Type(r *Registry, typename string) NamedType {
 	for _, element := range m.proto.Elements {
 		switch v := element.(type) {
 		case *proto.Message:
@@ -114,50 +119,71 @@ func (m *Message) Type(typename string) NamedType {
 				continue
 			}
 
-			return &Message{
-				proto: v,
-			}
+			return r.wrap(v).(*Message)
 		case *proto.Enum:
 			if v.Name != typename {
 				continue
 			}
 
-			return &Enum{
-				proto: v,
-			}
+			return r.wrap(v).(*Enum)
 		}
 	}
 
 	return nil
 }
 
-func (m *MessageField) Name() string {
-	switch p := m.payload.(type) {
-	case *isEmickleiNormalField:
-		return p.Name
-	case *isEmickleiOneOf:
-		return p.Name
-	case *isEmickleiMapField:
-		return p.Name
-	default:
-		panic(errors.Newf("message came with invalid payload %T", m.payload))
+// Everything returns everything defined at the top level of the message.
+func (m *Message) Everything(r *Registry) iter.Seq[Node] {
+	return func(yield func(Node) bool) {
+		for _, e := range m.proto.Elements {
+			if v, ok := e.(*proto.Option); ok {
+				if !yield(r.wrapOption(v, r.optionContextMessage())) {
+					return
+				}
+				continue
+			}
+			if !yield(r.wrap(e)) {
+				return
+			}
+		}
 	}
 }
 
-func (m *MessageField) Type(r *Registry) Type {
-	switch p := m.payload.(type) {
-	case *isEmickleiNormalField:
-		normalField := p.asProto()
+// Name returns field name.
+func (m *MessageField) Name() string {
+	switch p := m.proto.(type) {
+	case *proto.NormalField:
+		return p.Name
+	case *proto.Oneof:
+		return p.Name
+	case *proto.MapField:
+		return p.Name
+	default:
+		panic(errors.Newf("message came with invalid payload %T", m.proto))
+	}
+}
+
+// Type returns field type.
+func (m *MessageField) Type(r *Registry) (res Type) {
+	if v, ok := r.ftcache[m]; ok {
+		return v
+	}
+	defer func() {
+		r.ftcache[m] = res
+	}()
+	switch p := m.proto.(type) {
+	case *proto.NormalField:
+		normalField := p
 		return r.getTypeByName(normalField, normalField.Type)
-	case *isEmickleiOneOf:
+	case *proto.Oneof:
 		return &OneOf{
-			proto: p.asProto(),
+			proto: p,
 		}
-	case *isEmickleiMapField:
+	case *proto.MapField:
 		return &Map{
-			proto: p.asProto(),
+			proto: p,
 		}
 	default:
-		panic(errors.Newf("message came with invalid payload %T", m.payload))
+		panic(errors.Newf("message came with invalid payload %T", m.proto))
 	}
 }

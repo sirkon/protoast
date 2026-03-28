@@ -88,7 +88,7 @@ func buildFromLiteral(
 
 	switch t := r.getTypeByName(field, field.Type).(type) {
 	case *Enum:
-		val := t.Value(literal.Source)
+		val := t.Value(r, literal.Source)
 		if val == nil {
 			panic(errors.Newf("unknown enum %s value %s", field.Type, literal.Source))
 		}
@@ -99,11 +99,11 @@ func buildFromLiteral(
 	case *Message:
 		var res []OptionValueMapItem
 		for _, lit := range literal.OrderedMap {
-			f := t.Field(lit.Name)
+			f := t.Field(r, lit.Name)
 			if f == nil {
 				panic(errors.Newf("unknown message %s field %s", t.Name(), lit.Name))
 			}
-			rr := buildFromLiteral(r, f.payload.(*isEmickleiNormalField).asProto(), lit.Literal, false)
+			rr := buildFromLiteral(r, f.proto.(*proto.NormalField), lit.Literal, false)
 			res = append(res, OptionValueMapItem{
 				Key:   lit.Name,
 				Value: rr,

@@ -8,6 +8,7 @@ import (
 
 type OneOf struct {
 	isType
+	isNodeOptionable
 
 	proto *proto.Oneof
 }
@@ -18,7 +19,8 @@ type OneOfBranch struct {
 	proto *proto.OneOfField
 }
 
-func (o *OneOf) Branches() iter.Seq[*OneOfBranch] {
+// Branches returns all branches.
+func (o *OneOf) Branches(r *Registry) iter.Seq[*OneOfBranch] {
 	return func(yield func(*OneOfBranch) bool) {
 		for _, e := range o.proto.Elements {
 			v, ok := e.(*proto.OneOfField)
@@ -26,16 +28,15 @@ func (o *OneOf) Branches() iter.Seq[*OneOfBranch] {
 				continue
 			}
 
-			if !yield(&OneOfBranch{
-				proto: v,
-			}) {
+			if !yield(r.wrap(v).(*OneOfBranch)) {
 				return
 			}
 		}
 	}
 }
 
-func (o *OneOf) Branch(name string) *OneOfBranch {
+// Branch returns a branch with the given name.
+func (o *OneOf) Branch(r *Registry, name string) *OneOfBranch {
 	for _, e := range o.proto.Elements {
 		v, ok := e.(*proto.OneOfField)
 		if !ok {
@@ -46,9 +47,7 @@ func (o *OneOf) Branch(name string) *OneOfBranch {
 			continue
 		}
 
-		return &OneOfBranch{
-			proto: v,
-		}
+		return r.wrap(v).(*OneOfBranch)
 	}
 
 	return nil

@@ -10,7 +10,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/sirkon/errors"
+	"github.com/sirkon/protoast/v2/internal/errors"
 )
 
 // PathResolver returns absolute path for the given path in protobuf import statement.

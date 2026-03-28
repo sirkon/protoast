@@ -14,6 +14,7 @@ type Map struct {
 	proto *proto.MapField
 }
 
+// Key returns map key type.
 func (m *Map) Key() ComparableType {
 	keyType := builtinComparableType(m.proto.KeyType)
 	if keyType == nil {
@@ -23,6 +24,7 @@ func (m *Map) Key() ComparableType {
 	return keyType
 }
 
+// Value returns map value type.
 func (m *Map) Value(r *Registry) ComposableType {
 	valueType := builtinType(m.proto.Type)
 	if valueType != nil {
@@ -37,13 +39,9 @@ func (m *Map) Value(r *Registry) ComposableType {
 	visitee := r.registry[qualifiedTypeName]
 	switch t := visitee.(type) {
 	case *proto.Message:
-		return &Message{
-			proto: t,
-		}
+		return r.wrap(t).(*Message)
 	case *proto.Enum:
-		return &Enum{
-			proto: t,
-		}
+		return r.wrap(t).(*Enum)
 	default:
 		panic(errors.Newf("value type %s is not supported in maps", m.proto.Type))
 	}
