@@ -33,6 +33,22 @@ type (
 	Syntax             = core.Syntax
 	Package            = core.Package
 
+	Bool     = core.Bool
+	Int32    = core.Int32
+	Int64    = core.Int64
+	Sint32   = core.Sint32
+	Sint64   = core.Sint64
+	Sfixed32 = core.Sfixed32
+	Sfixed64 = core.Sfixed64
+	Uint32   = core.Uint32
+	Uint64   = core.Uint64
+	Fixed32  = core.Fixed32
+	Fixed64  = core.Fixed64
+	Float    = core.Float
+	Double   = core.Double
+	String   = core.String
+	Bytes    = core.Bytes
+
 	OptionValueBool    = core.OptionValueBool
 	OptionValueInt     = core.OptionValueInt
 	OptionValueUint    = core.OptionValueUint
