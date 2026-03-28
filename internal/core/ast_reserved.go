@@ -2,6 +2,7 @@ package core
 
 import (
 	"iter"
+	"text/scanner"
 
 	"github.com/emicklei/proto"
 )
@@ -9,8 +10,6 @@ import (
 // Reserved represents reserved construct in named types.
 // TODO implement
 type Reserved struct {
-	isNode
-
 	proto *proto.Reserved
 }
 
@@ -71,6 +70,14 @@ type ReservedValueString struct {
 }
 
 func (*ReservedValueSingleNumber) isReserved() {}
-func (*ReservedValueRange) isReserved()        {}
-func (*ReservedValueFrom) isReserved()         {}
-func (*ReservedValueString) isReserved()       {}
+
+func (*ReservedValueRange) isReserved()  {}
+func (*ReservedValueFrom) isReserved()   {}
+func (*ReservedValueString) isReserved() {}
+
+var (
+	_ Node = new(Reserved)
+)
+
+func (r *Reserved) nodeProto() proto.Visitee { return r.proto }
+func (r *Reserved) pos() scanner.Position    { return r.proto.Position }

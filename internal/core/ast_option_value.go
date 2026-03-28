@@ -11,28 +11,16 @@ import (
 	"github.com/sirkon/protoast/v2/internal/errors"
 )
 
-type OptionValue struct {
-	isNode
-
-	option *Option
-}
-
-func (o OptionValue) Value() OptionValueVariant {
-	return buildFromLiteral(o.option.registry, o.option.protoOptionField, &o.option.protoOption.Constant, false)
-}
-
-func buildFromLiteral(
-	r *Registry,
-	field *proto.NormalField,
-	literal *proto.Literal,
-	ignoreRepeat bool,
-) OptionValueVariant {
+func buildFromLiteral(r *Registry, option *proto.Option, field *proto.NormalField, literal *proto.Literal, ignoreRepeat bool) OptionValueVariant {
 	if field.Repeated && !ignoreRepeat {
 		var res []OptionValueVariant
 		for _, l := range literal.Array {
-			res = append(res, buildFromLiteral(r, field, l, true))
+			res = append(res, buildFromLiteral(r, nil, field, l, true))
 		}
 		return &OptionValueArray{
+			isOptionValueVariant: isOptionValueVariant{
+				option: option,
+			},
 			Value: res,
 		}
 	}
@@ -44,6 +32,9 @@ func buildFromLiteral(
 			panic(errors.Wrap(err, "convert literal to bool"))
 		}
 		return &OptionValueBool{
+			isOptionValueVariant: isOptionValueVariant{
+				option: option,
+			},
 			proto: literal,
 			Value: val,
 		}
@@ -53,6 +44,9 @@ func buildFromLiteral(
 			panic(errors.Wrap(err, "convert literal to int"))
 		}
 		return &OptionValueInt{
+			isOptionValueVariant: isOptionValueVariant{
+				option: option,
+			},
 			proto: literal,
 			Value: val,
 		}
@@ -62,6 +56,9 @@ func buildFromLiteral(
 			panic(errors.Wrap(err, "convert literal to uint"))
 		}
 		return &OptionValueUint{
+			isOptionValueVariant: isOptionValueVariant{
+				option: option,
+			},
 			proto: literal,
 			Value: uint(val),
 		}
@@ -71,16 +68,25 @@ func buildFromLiteral(
 			panic(errors.Wrap(err, "convert literal to float"))
 		}
 		return &OptionValueFloat{
+			isOptionValueVariant: isOptionValueVariant{
+				option: option,
+			},
 			proto: literal,
 			Value: val,
 		}
 	case "string":
 		return &OptionValueString{
+			isOptionValueVariant: isOptionValueVariant{
+				option: option,
+			},
 			proto: literal,
 			Value: literal.Source,
 		}
 	case "bytes":
 		return &OptionValueBytes{
+			isOptionValueVariant: isOptionValueVariant{
+				option: option,
+			},
 			proto: literal,
 			Value: []byte(literal.Source),
 		}
@@ -93,6 +99,9 @@ func buildFromLiteral(
 			panic(errors.Newf("unknown enum %s value %s", field.Type, literal.Source))
 		}
 		return &OptionValueEnum{
+			isOptionValueVariant: isOptionValueVariant{
+				option: option,
+			},
 			proto: literal,
 			Value: val,
 		}
@@ -103,13 +112,16 @@ func buildFromLiteral(
 			if f == nil {
 				panic(errors.Newf("unknown message %s field %s", t.Name(), lit.Name))
 			}
-			rr := buildFromLiteral(r, f.proto.(*proto.NormalField), lit.Literal, false)
+			rr := buildFromLiteral(r, nil, f.proto.(*proto.NormalField), lit.Literal, false)
 			res = append(res, OptionValueMapItem{
 				Key:   lit.Name,
 				Value: rr,
 			})
 		}
 		return &OptionValueMap{
+			isOptionValueVariant: isOptionValueVariant{
+				option: option,
+			},
 			proto: literal,
 			Value: res,
 		}
@@ -119,78 +131,84 @@ func buildFromLiteral(
 }
 
 type OptionValueVariant interface {
-	Node
-
+	Positionable
 	fmt.Stringer
-	isOptionValueVariant()
+	isOptionValueVariantType()
 }
 
+type isOptionValueVariant struct {
+	option *proto.Option
+}
+
+func (v *isOptionValueVariant) nodeProto() proto.Visitee { return v.option }
+func (v *isOptionValueVariant) pos() scanner.Position    { return v.option.Position }
+func (*isOptionValueVariant) isOptionValueVariantType()  {}
+
 type OptionValueBool struct {
-	isNode
+	isOptionValueVariant
 	proto *proto.Literal
 
 	Value bool
 }
 
 type OptionValueInt struct {
-	isNode
+	isOptionValueVariant
 	proto *proto.Literal
 
 	Value int
 }
 
 type OptionValueUint struct {
-	isNode
+	isOptionValueVariant
 	proto *proto.Literal
 
 	Value uint
 }
 
 type OptionValueFloat struct {
-	isNode
+	isOptionValueVariant
 	proto *proto.Literal
 
 	Value float64
 }
 
 type OptionValueString struct {
-	isNode
+	isOptionValueVariant
 	proto *proto.Literal
 
 	Value string
 }
 
 type OptionValueBytes struct {
-	isNode
+	isOptionValueVariant
 	proto *proto.Literal
 
 	Value []byte
 }
 
 type OptionValueEnum struct {
-	isNode
+	isOptionValueVariant
 	proto *proto.Literal
 
 	Value *EnumValue
 }
 
 type OptionValueArray struct {
-	isNode
+	isOptionValueVariant
 	proto *proto.Literal
 
 	Value []OptionValueVariant
 }
 
 type OptionValueMap struct {
-	isNode
+	isOptionValueVariant
 	proto *proto.Literal
 
 	Value []OptionValueMapItem
-	pos   scanner.Position
 }
 
 type OptionValueMapItem struct {
-	isNode
+	isOptionValueVariant
 	proto *proto.Literal
 
 	Key   string
@@ -256,12 +274,14 @@ func (o *OptionValueMap) String() string {
 	return res.String()
 }
 
-func (o *OptionValueBool) isOptionValueVariant()   {}
-func (o *OptionValueInt) isOptionValueVariant()    {}
-func (o *OptionValueUint) isOptionValueVariant()   {}
-func (o *OptionValueString) isOptionValueVariant() {}
-func (o *OptionValueBytes) isOptionValueVariant()  {}
-func (o *OptionValueFloat) isOptionValueVariant()  {}
-func (o *OptionValueEnum) isOptionValueVariant()   {}
-func (o *OptionValueArray) isOptionValueVariant()  {}
-func (o *OptionValueMap) isOptionValueVariant()    {}
+var (
+	_ Positionable = new(OptionValueBool)
+	_ Positionable = new(OptionValueInt)
+	_ Positionable = new(OptionValueUint)
+	_ Positionable = new(OptionValueString)
+	_ Positionable = new(OptionValueBytes)
+	_ Positionable = new(OptionValueFloat)
+	_ Positionable = new(OptionValueEnum)
+	_ Positionable = new(OptionValueArray)
+	_ Positionable = new(OptionValueMap)
+)

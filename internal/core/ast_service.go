@@ -2,19 +2,18 @@ package core
 
 import (
 	"iter"
+	"text/scanner"
 
 	"github.com/emicklei/proto"
 )
 
 type Service struct {
-	isNode
 	isNodeOptionable
 
 	proto *proto.Service
 }
 
 type Method struct {
-	isNode
 	isNodeOptionable
 
 	proto *proto.RPC
@@ -107,3 +106,13 @@ func (m *Method) Options(r *Registry) iter.Seq[*Option] {
 		}
 	}
 }
+
+var (
+	_ Node = new(Service)
+	_ Node = new(Method)
+)
+
+func (s *Service) nodeProto() proto.Visitee { return s.proto }
+func (s *Service) pos() scanner.Position    { return s.proto.Position }
+func (m *Method) nodeProto() proto.Visitee  { return m.proto }
+func (m *Method) pos() scanner.Position     { return m.proto.Position }

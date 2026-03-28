@@ -2,6 +2,7 @@ package core
 
 import (
 	"strings"
+	"text/scanner"
 
 	"github.com/emicklei/proto"
 
@@ -46,3 +47,8 @@ func (m *Map) Value(r *Registry) ComposableType {
 		panic(errors.Newf("value type %s is not supported in maps", m.proto.Type))
 	}
 }
+
+var _ Node = new(Map)
+
+func (m *Map) nodeProto() proto.Visitee { return m.proto }
+func (m *Map) pos() scanner.Position    { return m.proto.Position }

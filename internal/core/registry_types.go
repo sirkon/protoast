@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"iter"
+	"unsafe"
 
 	"github.com/emicklei/proto"
 
@@ -64,14 +65,13 @@ func (r *Registry) NodeParent(node Node) Node {
 	case *Package:
 		return r.wrap(n.proto.Parent)
 	case *Option:
-		return r.wrap(n.protoOption.Parent)
-	case *OptionValue:
-		switch w := n.option.protoOption.Parent.(type) {
-		case *proto.Option:
-			return r.wrapOption(w, n.option.protoOptionClass)
-		default:
-			return r.wrap(n.option.protoOption.Parent)
-		}
+		return r.wrap(n.proto.Parent)
+	case OptionValueVariant:
+		// These types all have isOptionValueVariant embededed as their first field.
+		// Since Go does not do any reorder, for now, we use the 2nd word as the
+		// pointer to that isOptionValueVariant thing.
+		typPtr := (*isOptionValueVariant)(unsafe.Add(unsafe.Pointer(&node), 8))
+		return r.wrap(typPtr.option)
 	case *File:
 		return nil
 	default:
@@ -89,6 +89,18 @@ func (r *Registry) NodeHierarchy(node Node) iter.Seq[Node] {
 			node = r.NodeParent(node)
 		}
 	}
+}
+
+// NodeFile is an ugly ass thing where we use position to find the right file.
+// It is not I like it, really. But there's no other simple way.
+func (r *Registry) NodeFile(node Node) *File {
+	pos := node.pos()
+	f, ok := r.protos[pos.Filename]
+	if !ok {
+		return nil
+	}
+
+	return r.wrap(f).(*File)
 }
 
 func (r *Registry) getTypeByName(scopeOf proto.Visitee, name string) (res Type) {
@@ -263,3 +275,5 @@ var (
 	stringTypeValue   = &String{}
 	bytesTypeValue    = &Bytes{}
 )
+
+type iface [16]byte

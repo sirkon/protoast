@@ -2,11 +2,19 @@ package core
 
 import (
 	"fmt"
+	"text/scanner"
+
+	"github.com/emicklei/proto"
 )
+
+type Positionable interface {
+	pos() scanner.Position
+}
 
 // Node represents any ast item.
 type Node interface {
-	isNodeType()
+	Positionable
+	nodeProto() proto.Visitee
 }
 
 type NodeOptionable interface {
@@ -52,17 +60,11 @@ type NamedType interface {
 	isNamedTypeType()
 }
 
-type isNode struct{}
-
 type isNodeOptionable struct{}
 
-type isFieldNode struct {
-	isNode
-}
+type isFieldNode struct{}
 
-type isType struct {
-	isNode
-}
+type isType struct{}
 
 type isBuiltinType struct {
 	isComposableType
@@ -80,7 +82,6 @@ type isComparableType struct {
 	isBuiltinType
 }
 
-func (*isNode) isNodeType()                     {}
 func (*isNodeOptionable) isNodeOptionableType() {}
 func (*isFieldNode) isFieldNodeType()           {}
 func (*isType) isTypeType()                     {}
@@ -88,3 +89,8 @@ func (*isBuiltinType) isBuiltinTypeType()       {}
 func (*isNamedType) isNamedTypeType()           {}
 func (*isComparableType) isComparableTypeType() {}
 func (*isComposableType) isComposableTypeType() {}
+
+func (*isBuiltinType) nodeProto() proto.Visitee { return nil }
+func (*isBuiltinType) pos() scanner.Position    { return scanner.Position{} }
+
+var _ Node = new(isBuiltinType)

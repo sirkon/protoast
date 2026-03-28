@@ -2,6 +2,7 @@ package core
 
 import (
 	"iter"
+	"text/scanner"
 
 	"github.com/emicklei/proto"
 )
@@ -52,3 +53,13 @@ func (o *OneOf) Branch(r *Registry, name string) *OneOfBranch {
 
 	return nil
 }
+
+var (
+	_ Node = new(OneOf)
+	_ Node = new(OneOfBranch)
+)
+
+func (o *OneOf) nodeProto() proto.Visitee       { return o.proto }
+func (o *OneOf) pos() scanner.Position          { return o.proto.Position }
+func (o *OneOfBranch) nodeProto() proto.Visitee { return o.proto }
+func (o *OneOfBranch) pos() scanner.Position    { return o.proto.Position }

@@ -93,7 +93,7 @@ func (r *Registry) protoFile(path string) (*proto.Proto, error) {
 		return nil, errors.New("not found")
 	}
 
-	parsed, err := readProtoFile(protoName)
+	parsed, err := readProtoFile(protoName, path)
 	if err != nil {
 		return nil, errors.Wrap(err, "get proto definition from resolved file "+protoName)
 	}
@@ -135,13 +135,15 @@ func (r *Registry) optionContextMethod() *proto.Message {
 	return r.registry[registryOptionsMethod].(*proto.Message)
 }
 
-func readProtoFile(protoName string) (*proto.Proto, error) {
+func readProtoFile(protoName string, path string) (*proto.Proto, error) {
 	file, err := os.ReadFile(protoName)
 	if err != nil {
 		return nil, errors.Wrap(err, "read file")
 	}
 
-	parsed, err := proto.NewParser(bytes.NewReader(file)).Parse()
+	parser := proto.NewParser(bytes.NewReader(file))
+	parser.Filename(path)
+	parsed, err := parser.Parse()
 	if err != nil {
 		return nil, errors.Wrap(err, "parse file")
 	}

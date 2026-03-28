@@ -76,8 +76,6 @@ func (r *Registry) NodeDescription(node Node) string {
 		return "map[" + r.NodeDescription(n.Key()) + ", " + r.NodeDescription(n.Value(r)) + "] field"
 	case *Repeated:
 		return "[]" + r.NodeDescription(n.Type)
-	case *OptionValue:
-		return "option value"
 	case *Reserved:
 		return "reserved"
 	default:
@@ -157,9 +155,14 @@ func (r *Registry) Comment(node Node) []string {
 	return nil
 }
 
-func (r *Registry) Pos(node Node) (res scanner.Position) {
+func (r *Registry) Pos(pos Positionable) (res scanner.Position) {
 	defer func() {
 		if res.Filename != "" {
+			return
+		}
+
+		node, ok := pos.(Node)
+		if !ok {
 			return
 		}
 
@@ -168,7 +171,8 @@ func (r *Registry) Pos(node Node) (res scanner.Position) {
 		file := last.(*File)
 		res.Filename = file.proto.Filename
 	}()
-	switch n := node.(type) {
+
+	switch n := pos.(type) {
 	case *File:
 		return scanner.Position{
 			Filename: n.proto.Filename,
@@ -188,9 +192,7 @@ func (r *Registry) Pos(node Node) (res scanner.Position) {
 			panic(errors.Newf("unsupported message field type: %T", p))
 		}
 	case *Option:
-		return n.protoOption.Position
-	case *OptionValue:
-		return n.option.protoOption.Constant.Position
+		return n.proto.Position
 	case *OptionValueBool:
 		return n.proto.Position
 	case *OptionValueInt:

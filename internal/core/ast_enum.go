@@ -2,6 +2,7 @@ package core
 
 import (
 	"iter"
+	"text/scanner"
 
 	"github.com/emicklei/proto"
 )
@@ -86,3 +87,12 @@ func (e *EnumValue) Name() string {
 func (e *EnumValue) Value() int {
 	return e.proto.Integer
 }
+
+var _ Node = new(Enum)
+
+var _ Node = new(EnumValue)
+
+func (e *Enum) nodeProto() proto.Visitee      { return e.proto }
+func (e *Enum) pos() scanner.Position         { return e.proto.Position }
+func (e *EnumValue) nodeProto() proto.Visitee { return e.proto }
+func (e *EnumValue) pos() scanner.Position    { return e.proto.Position }

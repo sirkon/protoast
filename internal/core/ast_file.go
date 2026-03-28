@@ -2,12 +2,12 @@ package core
 
 import (
 	"iter"
+	"text/scanner"
 
 	"github.com/emicklei/proto"
 )
 
 type File struct {
-	isNode
 	isNodeOptionable
 
 	proto *proto.Proto
@@ -143,5 +143,15 @@ func (f *File) Everything(r *Registry) iter.Seq[Node] {
 				return
 			}
 		}
+	}
+}
+
+var _ Node = new(File)
+
+func (f *File) nodeProto() proto.Visitee { return f.proto }
+func (f *File) pos() scanner.Position {
+	return scanner.Position{
+		Filename: f.proto.Filename,
+		Line:     1,
 	}
 }

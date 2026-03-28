@@ -3,17 +3,16 @@ package core
 import (
 	"iter"
 	"strings"
+	"text/scanner"
 
 	"github.com/emicklei/proto"
 )
 
 type Option struct {
-	isNode
-
-	registry         *Registry
-	protoOptionClass *proto.Message
-	protoOptionField *proto.NormalField
-	protoOption      *proto.Option
+	proto       *proto.Option
+	registry    *Registry
+	optionClass *proto.Message
+	optionField *proto.NormalField
 }
 
 func newOption(r *Registry, scope string, class *proto.Message, option *proto.Option) *Option {
@@ -43,10 +42,10 @@ func newOption(r *Registry, scope string, class *proto.Message, option *proto.Op
 	}
 
 	res := &Option{
-		registry:         r,
-		protoOptionClass: class,
-		protoOptionField: field,
-		protoOption:      option,
+		registry:    r,
+		optionClass: class,
+		optionField: field,
+		proto:       option,
 	}
 	return res
 }
@@ -55,18 +54,16 @@ func (o *Option) Name() string {
 	// An option can be either predefined or custom. A custom one
 	// does not refer an "extend" message but option container like
 	// google.protobuf.descriptor.FileOptions.
-	if o.protoOptionField.Parent == o.protoOptionClass {
-		scope := o.registry.scopes[o.protoOptionClass]
-		return "(" + scope + ")" + "." + o.protoOptionField.Name
+	if o.optionField.Parent == o.optionClass {
+		scope := o.registry.scopes[o.optionClass]
+		return "(" + scope + ")" + "." + o.optionField.Name
 	} else {
-		return o.protoOption.Name
+		return o.proto.Name
 	}
 }
 
-func (o *Option) Value() OptionValue {
-	return OptionValue{
-		option: o,
-	}
+func (o *Option) Value() OptionValueVariant {
+	return buildFromLiteral(o.registry, o.proto, o.optionField, &o.proto.Constant, false)
 }
 
 func seqOptions[T proto.Visitee](r *Registry, scope, className string, elements []T) iter.Seq[*Option] {
@@ -119,3 +116,8 @@ const (
 )
 
 var parenthesisReplacer = strings.NewReplacer("(", "", ")", "")
+
+var _ Node = new(Option)
+
+func (o *Option) nodeProto() proto.Visitee { return o.proto }
+func (o *Option) pos() scanner.Position    { return o.proto.Position }

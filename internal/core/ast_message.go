@@ -2,6 +2,7 @@ package core
 
 import (
 	"iter"
+	"text/scanner"
 
 	"github.com/emicklei/proto"
 
@@ -183,6 +184,27 @@ func (m *MessageField) Type(r *Registry) (res Type) {
 		return &Map{
 			proto: p,
 		}
+	default:
+		panic(errors.Newf("message came with invalid payload %T", m.proto))
+	}
+}
+
+var _ Node = new(Message)
+
+var _ Node = new(MessageField)
+
+func (m *Message) nodeProto() proto.Visitee      { return m.proto }
+func (m *Message) pos() scanner.Position         { return m.proto.Position }
+func (m *MessageField) nodeProto() proto.Visitee { return m.proto }
+
+func (m *MessageField) pos() scanner.Position {
+	switch p := m.proto.(type) {
+	case *proto.NormalField:
+		return p.Position
+	case *proto.Oneof:
+		return p.Position
+	case *proto.MapField:
+		return p.Position
 	default:
 		panic(errors.Newf("message came with invalid payload %T", m.proto))
 	}

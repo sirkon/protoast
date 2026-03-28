@@ -44,11 +44,11 @@ func (r *Registry) GoPackageOption(node Node) *GoPackageOption {
 		panic(errors.New("no go_package option detected in registry"))
 	}
 
-	if v.protoOptionField != sample {
+	if v.optionField != sample {
 		return nil
 	}
 
-	source := v.protoOption.Constant.Source
+	source := v.proto.Constant.Source
 	pos := strings.IndexByte(source, ';')
 	if pos < 0 {
 		return &GoPackageOption{
@@ -60,6 +60,28 @@ func (r *Registry) GoPackageOption(node Node) *GoPackageOption {
 		Path: source[:pos],
 		Name: source[pos+1:],
 	}
+}
+
+func (r *Registry) GoPackage(node Node) *GoPackageOption {
+	file := r.NodeFile(node)
+	if file == nil {
+		return nil
+	}
+
+	for a := range file.Everything(r) {
+		v, ok := a.(*Option)
+		if !ok {
+			continue
+		}
+
+		if v.Name() != "go_option" {
+			continue
+		}
+
+		return r.GoPackageOption(v)
+	}
+
+	return nil
 }
 
 type GoPackageOption struct {
