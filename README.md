@@ -33,7 +33,7 @@ func main() {
         panic(err)
     }
 
-    registry, err := protoast.NewRegistry(resolvers...)
+    registry, err := protoast.NewRegistry(resolvers)
     if err != nil {
         panic(err)
     }
@@ -43,9 +43,17 @@ func main() {
         panic(err)
     }
 
-    fmt.Println(f.Name(), f.Package())
+    fmt.Println("package data:", f.Name(), f.Package())
     for option := range registry.Options(f) {
-        fmt.Println(option.Name(), option.Value().Value())
+        fmt.Println("file option:", option.Name(), option.Value())
+    }
+    
+    for msg := range f.Messages(registry) {
+        fmt.Println("message:", msg.Name())
+        
+        for field := range msg.Fields(registry) {
+            fmt.Println("field:", msg.Name() + "." + field.Name())
+        }
     }
 }
 ```
