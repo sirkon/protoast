@@ -30,6 +30,21 @@ func (f *File) Package() string {
 	return ""
 }
 
+// Imports returns all imports used in this file.
+func (f *File) Imports(r *Registry) iter.Seq[*Import] {
+	return func(yield func(*Import) bool) {
+		for _, element := range f.proto.Elements {
+			if _, ok := element.(*proto.Import); !ok {
+				continue
+			}
+
+			if !yield(r.wrap(element).(*Import)) {
+				return
+			}
+		}
+	}
+}
+
 // Messages defined at the top level.
 func (f *File) Messages(r *Registry) iter.Seq[*Message] {
 	return func(yield func(*Message) bool) {
@@ -125,6 +140,38 @@ func (f *File) Type(r *Registry, typename string) NamedType {
 
 			return r.wrap(v).(*Enum)
 		}
+	}
+
+	return nil
+}
+
+func (f *File) Services(r *Registry) iter.Seq[*Service] {
+	return func(yield func(*Service) bool) {
+		for _, element := range f.proto.Elements {
+			v, ok := element.(*proto.Service)
+			if !ok {
+				continue
+			}
+
+			if !yield(r.wrap(v).(*Service)) {
+				return
+			}
+		}
+	}
+}
+
+func (f *File) Service(r *Registry, name string) *Service {
+	for _, element := range f.proto.Elements {
+		v, ok := element.(*proto.Service)
+		if !ok {
+			continue
+		}
+
+		if v.Name != name {
+			continue
+		}
+
+		return r.wrap(v).(*Service)
 	}
 
 	return nil
