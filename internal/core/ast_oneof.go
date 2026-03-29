@@ -54,6 +54,16 @@ func (o *OneOf) Branch(r *Registry, name string) *OneOfBranch {
 	return nil
 }
 
+func (o *OneOfBranch) Name() string { return o.proto.Name }
+
+func (o *OneOfBranch) Type(r *Registry) Type {
+	return r.wrap(o.proto).(Type)
+}
+
+func (o *OneOfBranch) Value() int {
+	return o.proto.Sequence
+}
+
 var (
 	_ Node = new(OneOf)
 	_ Node = new(OneOfBranch)

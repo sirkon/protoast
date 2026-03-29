@@ -189,6 +189,20 @@ func (m *MessageField) Type(r *Registry) (res Type) {
 	}
 }
 
+// Value returns field code.
+func (m *MessageField) Value() int {
+	switch p := m.proto.(type) {
+	case *proto.NormalField:
+		return p.Sequence
+	case *proto.Oneof:
+		panic(errors.Newf("oneof options do not have a value, you need to check field type first"))
+	case *proto.MapField:
+		return p.Sequence
+	default:
+		panic(errors.Newf("message field came with invalid payload %T", m.proto))
+	}
+}
+
 var _ Node = new(Message)
 
 var _ Node = new(MessageField)
