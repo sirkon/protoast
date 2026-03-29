@@ -18,6 +18,7 @@ type Enum struct {
 type EnumValue struct {
 	isFieldNode
 	isNodeOptionable
+	isType
 
 	proto *proto.EnumField
 }
