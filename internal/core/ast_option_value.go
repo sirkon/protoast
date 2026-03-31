@@ -50,7 +50,7 @@ func buildFromLiteral(r *Registry, option *proto.Option, field *proto.NormalFiel
 			proto: literal,
 			Value: val,
 		}
-	case "uin32", "fixed32", "uin64", "fixed64":
+	case "uint32", "fixed32", "uin64", "fixed64":
 		val, err := strconv.ParseUint(literal.Source, 10, 64)
 		if err != nil {
 			panic(errors.Wrap(err, "convert literal to uint"))
