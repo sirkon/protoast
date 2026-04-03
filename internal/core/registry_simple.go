@@ -74,7 +74,7 @@ func (r *Registry) GoPackage(node Node) *GoPackageOption {
 			continue
 		}
 
-		if v.Name() != "go_option" {
+		if v.Name() != "(.google.protobuf.FileOptions).go_package" {
 			continue
 		}
 
