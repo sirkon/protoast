@@ -2,6 +2,7 @@ package protoast_test
 
 import (
 	"iter"
+	"slices"
 	"testing"
 
 	"github.com/alecthomas/assert/v2"
@@ -77,6 +78,18 @@ func TestProtoAST(t *testing.T) {
 	enum := data.Enum(r, "Enum")
 	assert.NotEqual(t, nil, enum)
 	var count int
+	for option := range r.Options(enum) {
+		count++
+		assert.Equal(t, "(pb.enum_tag)", option.Name())
+		optVal := option.Value().(*past.OptionValueArray)
+		assert.Equal(t, 2, len(optVal.Value))
+		for i, vv := range optVal.Value {
+			assert.Equal(t, i == 0, vv.(*past.OptionValueBool).Value)
+		}
+	}
+	assert.Equal(t, 1, count, "no options in the enum")
+
+	count = 0
 	for value := range enum.Values(r) {
 		count++
 		switch value.Value() {
@@ -84,6 +97,16 @@ func TestProtoAST(t *testing.T) {
 			assert.Equal(t, "ENUM_UNSPECIFIED", value.Name())
 		case 1:
 			assert.Equal(t, "ENUM_VALUE_1", value.Name())
+			options := slices.Collect(r.Options(value))
+			assert.Equal(t, 1, len(options))
+			option := options[0]
+			assert.Equal(t, "(pb.enum_value_tag)", option.Name())
+			optVal := option.Value().(*past.OptionValueMap)
+			assert.Equal(t, 1, len(optVal.Value))
+			ovItem := optVal.Value[0]
+			assert.Equal(t, "a", ovItem.Key)
+			assert.Equal(t, 5, ovItem.Value.(*past.OptionValueInt).Value)
+
 		case 2:
 			assert.Equal(t, "ENUM_VALUE_2", value.Name())
 		default:
@@ -96,9 +119,28 @@ func TestProtoAST(t *testing.T) {
 
 	// Check service.
 	s := data.Service(r, "Service")
+	count = 0
+	for option := range r.Options(s) {
+		count++
+		assert.Equal(t, "(pb.service_tag)", option.Name())
+		optVal := option.Value().(*past.OptionValueBool)
+		assert.True(t, optVal.Value)
+	}
+	assert.Equal(t, 1, count, "no of options in the service")
+
 	assert.NotEqual(t, nil, s)
 	serviceData := map[string][]string{}
 	for method := range s.Methods(r) {
+		if method.Name() == "MethodUU" {
+			count = 0
+			for option := range r.Options(method) {
+				count++
+				assert.Equal(t, option.Name(), "(pb.method_tag)")
+				optval := option.Value().(*past.OptionValueBool)
+				assert.False(t, optval.Value)
+			}
+			assert.Equal(t, count, 1)
+		}
 		var payload []string
 		stream, msg := method.Input(r)
 		payload = append(payload, streamType(stream), msg.Name())
@@ -130,6 +172,20 @@ func checkMessage(t *testing.T, r *protoast.Registry, msg *past.Message) {
 		switch f.Name() {
 		case "i32":
 			assertField[*past.Int32](t, r, f, 1)
+
+			var count int
+			for option := range r.Options(f) {
+				count++
+
+				assert.Equal(t, option.Name(), "(pb.field_tag)")
+
+				v, ok := option.Value().(*past.OptionValueBool)
+				assert.True(t, ok)
+
+				assert.True(t, v.Value)
+			}
+			assert.Equal(t, 1, count, "no options in the field i32")
+
 		case "si32":
 			assertField[*past.Sint32](t, r, f, 2)
 		case "sf32":
@@ -211,6 +267,19 @@ func checkMessage(t *testing.T, r *protoast.Registry, msg *past.Message) {
 			t.Errorf("missing required field %q", name)
 		}
 	}
+
+	// Check option.
+	count := 0
+	for option := range r.Options(msg) {
+		count++
+		assert.Equal(t, option.Name(), "(pb.msg_tag)")
+		optValue, ok := option.Value().(*past.OptionValueString)
+		if !ok {
+			t.Errorf("option value expected to be a %T, got %T", new(past.OptionValueString), option.Value())
+		}
+		assert.Equal(t, optValue.Value, "message.tag")
+	}
+	assert.Equal(t, count, 1, "number of options in Message")
 }
 
 func assertField[T past.Type](t *testing.T, r *protoast.Registry, field *past.MessageField, value int) {

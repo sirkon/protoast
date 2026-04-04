@@ -42,7 +42,7 @@ message Message {
   EnumValuePayload local_msg = 102;
   InnerMessage inner_msg = 103;
   Enum local_enum = 104;
-  InnerEnum inner_enum = 105 [(pb.field_tag)=true];
+  InnerEnum inner_enum = 105;
 
   map<string, bool> map_field = 111;
   oneof payload {
@@ -77,7 +77,7 @@ message EnumValuePayload {
 }
 
 enum Enum {
-  option (pb.enum_tag) = true;
+  option (pb.enum_tag) = [true, false];
 
   ENUM_UNSPECIFIED = 0;
   ENUM_VALUE_1 = 1 [(pb.enum_value_tag)={a: 5}];
