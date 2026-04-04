@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package pb;
+
+option go_package = "gopkg/pb;pb";
+
+import "google/protobuf/descriptor.proto";
+import "data.proto";
+
+extend google.protobuf.FileOptions {
+  string file_tag = 51111;
+}
+
+extend google.protobuf.MessageOptions {
+  string msg_tag = 51111;
+}
+
+extend google.protobuf.FieldOptions {
+  bool field_tag = 51234;
+}
+
+extend google.protobuf.EnumOptions {
+  repeated bool enum_tag = 51111;
+}
+
+extend google.protobuf.EnumValueOptions {
+  EnumValuePayload enum_value_tag = 51111;
+}
+
+extend google.protobuf.OneofOptions {
+  bool oo_tag = 51111;
+}
+
+extend google.protobuf.ServiceOptions {
+  bool service_tag = 51111;
+}
+
+extend google.protobuf.MethodOptions {
+  bool method_tag = 51111;
+}
+

@@ -1,0 +1,85 @@
+syntax = "proto3";
+
+package pb;
+
+option go_package = "gopkg/pb;pb";
+
+import "meta.proto";
+import "google/protobuf/any.proto";
+
+option (pb.file_tag) = "file.tag";
+
+// Message
+message Message {
+  option (pb.msg_tag) = "message.tag";
+
+  int32 i32 = 1 [(pb.field_tag) = true];
+  sint32 si32 = 2;
+  sfixed32 sf32 = 3;
+
+
+  int64 i64 = 11;
+  sint64 si64 = 12;
+  sfixed64 sf64 = 13;
+
+  uint32 u32 = 21;
+  fixed32 uf32 = 22;
+
+  uint64 u64 = 31;
+  fixed64 uf64 = 32;
+
+  float f32 = 41;
+  double f64 = 42;
+
+  bool b = 51;
+
+  string str = 61;
+  // raw
+  bytes raw = 62;
+  repeated bool bools = 63;
+
+  google.protobuf.Any any = 101;
+  EnumValuePayload local_msg = 102;
+  InnerMessage inner_msg = 103;
+  Enum local_enum = 104;
+  InnerEnum inner_enum = 105 [(pb.field_tag)=true];
+
+  map<string, bool> map_field = 111;
+  oneof payload {
+    string branch1 = 112;
+    bool branch2 = 113;
+  }
+
+  message InnerMessage {
+    bool field = 1;
+  }
+
+  enum InnerEnum {
+    INNER_ENUM_UNSPECIFIED = 0;
+    INNER_ENUM_VALUE = 1;
+  }
+}
+
+service Service {
+  option (pb.service_tag) = true;
+
+  rpc MethodUU(Message) returns (Message.InnerMessage) {
+    option (pb.method_tag) = false;
+  }
+
+  rpc MethodUS(EnumValuePayload) returns (stream Message);
+  rpc MethodSU(stream Message.InnerMessage) returns (EnumValuePayload);
+  rpc MethodSS(stream Message.InnerMessage) returns (stream Message.InnerMessage);
+}
+
+message EnumValuePayload {
+  int32 a = 1;
+}
+
+enum Enum {
+  option (pb.enum_tag) = true;
+
+  ENUM_UNSPECIFIED = 0;
+  ENUM_VALUE_1 = 1 [(pb.enum_value_tag)={a: 5}];
+  ENUM_VALUE_2 = 2;
+}

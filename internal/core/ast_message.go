@@ -40,7 +40,7 @@ func (m *Message) Fields(r *Registry) iter.Seq[*MessageField] {
 			switch e := element.(type) {
 			case *proto.NormalField:
 				field = r.wrap(e)
-			case *proto.OneOfField:
+			case *proto.Oneof:
 				field = r.wrap(e)
 			case *proto.MapField:
 				field = r.wrap(e)
@@ -79,6 +79,74 @@ func (m *Message) Field(r *Registry, name string) *MessageField {
 		}
 
 		return r.wrap(p).(*MessageField)
+	}
+
+	return nil
+}
+
+// Messages returns messages defined at the top level of the message.
+func (m *Message) Messages(r *Registry) iter.Seq[*Message] {
+	return func(yield func(*Message) bool) {
+		for _, element := range m.proto.Elements {
+			switch e := element.(type) {
+			case *proto.Message:
+				if e.IsExtend {
+					continue
+				}
+
+				if !yield(r.wrap(e).(*Message)) {
+					return
+				}
+			}
+		}
+	}
+}
+
+// Message returns message with the given name defined at the top level of the message.
+func (m *Message) Message(r *Registry, name string) *Message {
+	for _, element := range m.proto.Elements {
+		switch e := element.(type) {
+		case *proto.Message:
+			if e.IsExtend {
+				continue
+			}
+
+			if e.Name != name {
+				continue
+			}
+
+			return r.wrap(e).(*Message)
+		}
+	}
+
+	return nil
+}
+
+// Enums returns enums defined at the top level of the message.
+func (m *Enum) Enums(r *Registry) iter.Seq[*Enum] {
+	return func(yield func(*Enum) bool) {
+		for _, element := range m.proto.Elements {
+			switch e := element.(type) {
+			case *proto.Enum:
+				if !yield(r.wrap(e).(*Enum)) {
+					return
+				}
+			}
+		}
+	}
+}
+
+// Enum returns enum with the given name defined at the top level of the message.
+func (m *Enum) Enum(r *Registry, name string) *Enum {
+	for _, element := range m.proto.Elements {
+		switch e := element.(type) {
+		case *proto.Enum:
+			if e.Name != name {
+				continue
+			}
+
+			return r.wrap(e).(*Enum)
+		}
 	}
 
 	return nil

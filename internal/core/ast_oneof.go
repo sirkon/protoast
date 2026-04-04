@@ -57,7 +57,7 @@ func (o *OneOf) Branch(r *Registry, name string) *OneOfBranch {
 func (o *OneOfBranch) Name() string { return o.proto.Name }
 
 func (o *OneOfBranch) Type(r *Registry) Type {
-	return r.wrap(o.proto).(Type)
+	return r.getTypeByName(o.proto, o.proto.Type)
 }
 
 func (o *OneOfBranch) Value() int {

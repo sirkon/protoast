@@ -27,6 +27,10 @@ func (r *Registry) TypeName(typ Type) string {
 	}
 }
 
+func (r *Registry) NodeByFullName(fullName string) Node {
+	return r.wrap(r.registry[fullName])
+}
+
 func (r *Registry) NodeParent(node Node) Node {
 	switch n := node.(type) {
 	case *Repeated:
