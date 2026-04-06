@@ -66,6 +66,15 @@ func (o *Option) Value() OptionValueVariant {
 	return buildFromLiteral(o.registry, o.proto, o.optionField, &o.proto.Constant, false)
 }
 
+// Is checks if given option has this qualified name. Meaning .x.y.z, not x.y.z.
+func (o *Option) Is(r *Registry, name string) bool {
+	parent := o.optionField.Parent.(*proto.Message) // This is always a message.
+	node := r.wrap(parent.Parent)
+	index := r.NodeIndex(node)
+
+	return index+"."+o.optionField.Name == name
+}
+
 func seqOptions[T proto.Visitee](r *Registry, scope, className string, elements []T) iter.Seq[*Option] {
 	class := r.registry[className].(*proto.Message)
 
