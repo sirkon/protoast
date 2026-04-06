@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/alecthomas/assert/v2"
-
 	"github.com/sirkon/protoast/v2"
 	"github.com/sirkon/protoast/v2/internal/errors"
 	"github.com/sirkon/protoast/v2/past"
@@ -44,11 +43,11 @@ func TestProtoAST(t *testing.T) {
 	for i, opt := range enumerate(r.Options(data)) {
 		switch i {
 		case 0:
-			assert.Equal(t, "(.google.protobuf.FileOptions).go_package", opt.Name())
+			assert.True(t, opt.Is(r, ".google.protobuf.FileOptions.go_package"))
 			v := opt.Value().(*past.OptionValueString)
 			assert.Equal(t, "gopkg/pb;pb", v.String())
 		case 1:
-			assert.Equal(t, "(pb.file_tag)", opt.Name())
+			assert.True(t, opt.Is(r, ".pb.file_tag"))
 			v := opt.Value().(*past.OptionValueString)
 			assert.Equal(t, "file.tag", v.String())
 
@@ -259,8 +258,8 @@ func checkMessage(t *testing.T, r *protoast.Registry, msg *past.Message) {
 	// Check if all fields were iterated (including branches of oneof).
 	requiredFields := []string{
 		"i32", "si32", "sf32", "i64", "si64", "sf64", "u32", "uf32", "u64", "uf64", "f32", "f64",
-		"b", "str", "raw", "bools", "any", "local_msg", "inner_msg", "local_enum", "inner_enum",
-		"map_field", "payload", "payload.branch1", "payload.branch2",
+		"b", "str", "raw", "bools", "any", "local_msg", "inner_msg", "local_enum", "inner_enum", "map_field", "payload", "payload.branch1",
+		"payload.branch2",
 	}
 	for _, name := range requiredFields {
 		if !names[name] {

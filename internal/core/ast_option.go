@@ -2,6 +2,7 @@ package core
 
 import (
 	"iter"
+	"slices"
 	"strings"
 	"text/scanner"
 
@@ -68,11 +69,29 @@ func (o *Option) Value() OptionValueVariant {
 
 // Is checks if given option has this qualified name. Meaning .x.y.z, not x.y.z.
 func (o *Option) Is(r *Registry, name string) bool {
-	parent := o.optionField.Parent.(*proto.Message) // This is always a message.
-	node := r.wrap(parent.Parent)
-	index := r.NodeIndex(node)
+	parent := r.wrap(o.optionField.Parent)
 
-	return index+"."+o.optionField.Name == name
+	var names []string
+	for node := range r.NodeHierarchy(parent) {
+		switch n := node.(type) {
+		case *Message:
+			if n.IsExtension() {
+				continue
+			}
+			names = append(names, n.Name())
+		case *File:
+			nn := n.Package()
+			if !strings.HasPrefix(nn, ".") {
+				nn = "." + nn
+			}
+			names = append(names, nn)
+		}
+	}
+	slices.Reverse(names)
+	names = append(names, o.optionField.Name)
+	res := strings.Join(names, ".")
+
+	return res == name
 }
 
 func seqOptions[T proto.Visitee](r *Registry, scope, className string, elements []T) iter.Seq[*Option] {

@@ -6,12 +6,13 @@ import (
 	"text/scanner"
 
 	"github.com/emicklei/proto"
-
 	"github.com/sirkon/protoast/v2/internal/errors"
 )
 
 func (r *Registry) NodeIndex(node Node) string {
 	switch n := node.(type) {
+	case *File:
+		return r.scopes[n.proto]
 	case *Message:
 		return r.scopes[n.proto]
 	case *Enum:
