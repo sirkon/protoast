@@ -4,13 +4,13 @@ import (
 	"strings"
 
 	"github.com/emicklei/proto"
-
 	"github.com/sirkon/protoast/v2/internal/errors"
 )
 
 type visitorDemark struct {
 	r *Registry
 
+	file     *proto.Proto
 	scope    string
 	isExtend bool
 }
@@ -56,8 +56,11 @@ func (v *visitorDemark) VisitPackage(p *proto.Package) {
 	if strings.HasPrefix(p.Name, ".") {
 		v.scope = p.Name
 	} else {
-		v.scope = "." + p.Name
+		if p.Name != "" {
+			v.scope = "." + p.Name
+		}
 	}
+	v.r.scopes[v.file] = v.scope
 }
 
 func (v *visitorDemark) VisitOption(o *proto.Option) {}

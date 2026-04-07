@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/emicklei/proto"
-
 	"github.com/sirkon/protoast/v2/internal/errors"
 )
 
@@ -62,7 +61,8 @@ func (r *Registry) demarkFile(path string) error {
 	}
 
 	v := &visitorDemark{
-		r: r,
+		r:    r,
+		file: file,
 	}
 	file.Accept(v)
 
