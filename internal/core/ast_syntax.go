@@ -12,5 +12,9 @@ type Syntax struct {
 
 var _ Node = new(Syntax)
 
+func (s *Syntax) Value() string {
+	return s.proto.Value
+}
+
 func (s *Syntax) nodeProto() proto.Visitee { return s.proto }
 func (s *Syntax) pos() scanner.Position    { return s.proto.Position }
