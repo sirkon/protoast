@@ -23,6 +23,15 @@ Most Go developers building custom tools face a dilemma: use raw text parsers wi
 - **Zero External C/C++ Dependencies:** Pure Go. Compile it into a single static binary easily.
 
 > **Note on Validation:** `protoast` is **not a validating compiler**. It assumes your `.proto` files are already structurally valid (e.g., compiled successfully via `protoc` or checked via `buf lint`).
+> 
+| Feature                  | protoast | protocompile     | protoc |
+| ------------------------ | -------- | ---------------- | ------ |
+| Pure Go, no C++          | ✅       | ❌               | ❌     |
+| Lazy iterators (Go 1.23) | ✅       | ❌               | ❌     |
+| No descriptor generation | ✅       | ❌               | ❌     |
+| Cyclic import resolution | ✅       | ⚠️ (complicated) | ✅     |
+| Validation               | ❌       | ✅               | ✅     |
+
 
 ## Installation
 
