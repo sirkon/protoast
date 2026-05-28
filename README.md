@@ -1,6 +1,20 @@
 # ProtoAST
 Lazy parser for protobuf built over excellent [emicklei/proto](https://github.com/emicklei/proto).
 
+## Installation
+
+```shell
+go get github.com/sirkon/protoast
+```
+
+## Features
+
+- Full types and options resolution. Options are bound to their respective types and can be traversed as trees.
+- Lazy parsing. Meaning no problems at recursive deps and so on. Everything is computed when needed. Only single parsing pass is performed.
+- Nice high level API.
+- No protoc's descriptor and so on.
+- Lacks validation. You still need to run `buf lint` and such to validate your PB files properly.
+
 ## Usage
 
 ```go
