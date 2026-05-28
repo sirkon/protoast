@@ -1,5 +1,26 @@
-# ProtoAST
-Lazy parser for protobuf built over excellent [emicklei/proto](https://github.com/emicklei/proto).
+# ProtoAST — Lightweight Protobuf AST & Type Resolver for Go
+
+[![Go Reference](https://go.dev)](https://go.dev)
+[![License: MIT](https://shields.io)](https://opensource.org)
+
+`protoast` is a fast, dependency-free, and developer-friendly library designed to build a strictly typed **Abstract Syntax Tree (AST)** and perform **full type resolution** for Protocol Buffers (v2 and v3) in pure Go. 
+
+Built on top of the excellent lexical parser [emicklei/proto](https://github.com/emicklei/proto), it provides a powerful, high-level API optimized for writing **custom Protobuf linters, static analyzers, and code generators**.
+
+## Why protoast? (The Problem with protocompile)
+
+Most Go developers building custom tools face a dilemma: use raw text parsers without type resolution, or pull in heavy, complex compilers like `bufbuild/protocompile`. 
+
+`protocompile` meticulously clones the entire C++ `protoc` descriptor logic to maintain 100% bug-for-bug compatibility with legacy features. If you control your schemas and don't need 15 years of legacy workarounds, `protoast` provides a clean, native alternative.
+
+### Key Advantages:
+- **No Protobuf Descriptors Needed:** You don't have to deal with `google.protobuf.FileDescriptorProto`. The `protoast` API *is* the descriptor itself, containing even more context (like exact source code positions for IDEs).
+- **Go 1.23 Iterators Support:** Leverages native `iter.Seq` (`for field := range msg.Fields(r)`) for zero-allocation, lazy, and clean tree traversal.
+- **Lazy Parsing & Cyclic Dependency Resolution:** Safely handles complex dependency graphs and recursive imports (`A.proto` imports `B.proto` and vice-versa) out of the box. Single-pass evaluation on demand.
+- **Deep Custom Options Inspection:** Parses complex, nested custom options, arrays, and extension values into structured Go interfaces, matching them with their actual definition types.
+- **Zero External C/C++ Dependencies:** Pure Go. Compile it into a single static binary easily.
+
+> **Note on Validation:** `protoast` is **not a validating compiler**. It assumes your `.proto` files are already structurally valid (e.g., compiled successfully via `protoc` or checked via `buf lint`).
 
 ## Installation
 
@@ -7,71 +28,67 @@ Lazy parser for protobuf built over excellent [emicklei/proto](https://github.co
 go get github.com/sirkon/protoast
 ```
 
-## Features
+## Quick Start / Usage
 
-- Full types and options resolution. Options are bound to their respective types and can be traversed as trees.
-- Lazy parsing. Meaning no problems at recursive deps and so on. Everything is computed when needed. Only single parsing pass is performed.
-- Nice high level API.
-- No google.protobuf.Descriptor. Our API is a descriptor itself. With more info actually.
-- Lacks validation. You still need to run `buf lint` and such to validate your PB files properly.
-
-## Usage
-
-Look at the [test](./protoast_test.go) to see the usage at the scale.
+Here is a simple example showing how to load a `.proto` file, resolve its imports using the local environment, and iterate over its elements using Go 1.23 iterators.
 
 ```go
 package main
 
 import (
-    "fmt"
-    "os"
-    "path/filepath"
+	"fmt"
+	"os"
+	"path/filepath"
 
-    "github.com/sirkon/protoast/v2"
+	"github.com/sirkon/protoast"
 )
 
 func main() {
-    home, err := os.UserHomeDir()
-    if err != nil {
-        panic(err)
-    }
+	// 1. Configure the path resolver. 
+	// WithProtoc() automatically locates your local protoc installation to resolve standard imports like google/protobuf/any.proto
+	resolvers, err := protoast.Resolvers().
+		WithProtoc().
+		WithRoot(".", "./vendor").
+		Build()
+	if err != nil {
+		panic(err)
+	}
 
-    if err := os.Chdir(home); err != nil {
-        panic(err)
-    }
+	// 2. Initialize the type registry
+	registry, err := protoast.NewRegistry(resolvers)
+	if err != nil {
+		panic(err)
+	}
 
-    if err := os.Chdir(filepath.Join("Sources", "work", "utopia", "internal", "schema")); err != nil {
-        panic(err)
-    }
+	// 3. Parse and resolve a target file
+	f, err := registry.Proto("service/utopia/v1/service_hash_download.proto")
+	if err != nil {
+		panic(err)
+	}
 
-    resolvers, err := protoast.Resolvers().WithProtoc().WithRoot(".", "./vendor").Build()
-    if err != nil {
-        panic(err)
-    }
+	fmt.Printf("Package: %s (%s)\n", f.Name(), f.Package())
 
-    registry, err := protoast.NewRegistry(resolvers)
-    if err != nil {
-        panic(err)
-    }
-
-    f, err := registry.Proto("service/utopia/v1/service_hash_download.proto")
-    if err != nil {
-        panic(err)
-    }
-
-    fmt.Println("package data:", f.Name(), f.Package())
-    for option := range registry.Options(f) {
-        fmt.Println("file option:", option.Name(), option.Value())
-    }
+	// 4. Iterate over file options using lazy iterators
+	for option := range registry.Options(f) {
+		fmt.Printf("File Option -> %s: %v\n", option.Name(), option.Value())
+	}
     
-    for msg := range f.Messages(registry) {
-        fmt.Println("message:", msg.Name())
-        
-        for field := range msg.Fields(registry) {
-            fmt.Println("field:", msg.Name() + "." + field.Name())
-        }
-    }
+	// 5. Deep traversal over Messages and Fields
+	for msg := range f.Messages(registry) {
+		fmt.Println("Message:", msg.Name())
+		
+		for field := range msg.Fields(registry) {
+			fmt.Printf("  Field: %s.%s\n", msg.Name(), field.Name())
+		}
+	}
 }
 ```
 
+## Advanced Examples
 
+To see how `protoast` behaves in real-world scenarios at scale (including custom nested options validation, array tags parsing, and cross-file type lookups), check out our comprehensive integration test suite:
+👉 [protoast_test.go](./protoast_test.go)
+
+## License
+
+Distributed under the **MIT License**. See `LICENSE` for more information.
