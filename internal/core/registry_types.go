@@ -3,7 +3,6 @@ package core
 import (
 	"fmt"
 	"iter"
-	"unsafe"
 
 	"github.com/emicklei/proto"
 
@@ -71,10 +70,7 @@ func (r *Registry) NodeParent(node Node) Node {
 	case *Option:
 		return r.wrap(n.proto.Parent)
 	case OptionValueVariant:
-		// These types all have isOptionValueVariant embededed as their first field.
-		// Since Go does not do any reorder, for now, we use the 2nd word as the
-		// pointer to that isOptionValueVariant thing.
-		typPtr := (*isOptionValueVariant)(unsafe.Add(unsafe.Pointer(&node), 8))
+		typPtr := n.isOptionValueVariantType()
 		return r.wrap(typPtr.option)
 	case *File:
 		return nil

@@ -133,7 +133,7 @@ func buildFromLiteral(r *Registry, option *proto.Option, field *proto.NormalFiel
 type OptionValueVariant interface {
 	Positionable
 	fmt.Stringer
-	isOptionValueVariantType()
+	isOptionValueVariantType() *isOptionValueVariant
 }
 
 type isOptionValueVariant struct {
@@ -142,7 +142,9 @@ type isOptionValueVariant struct {
 
 func (v *isOptionValueVariant) nodeProto() proto.Visitee { return v.option }
 func (v *isOptionValueVariant) pos() scanner.Position    { return v.option.Position }
-func (*isOptionValueVariant) isOptionValueVariantType()  {}
+func (v *isOptionValueVariant) isOptionValueVariantType() *isOptionValueVariant {
+	return v
+}
 
 type OptionValueBool struct {
 	isOptionValueVariant
