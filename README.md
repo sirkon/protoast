@@ -12,7 +12,7 @@ go get github.com/sirkon/protoast
 - Full types and options resolution. Options are bound to their respective types and can be traversed as trees.
 - Lazy parsing. Meaning no problems at recursive deps and so on. Everything is computed when needed. Only single parsing pass is performed.
 - Nice high level API.
-- No protoc's descriptor and so on.
+- No google.protobuf.Descriptor. Our API is a descriptor itself. With more info actually.
 - Lacks validation. You still need to run `buf lint` and such to validate your PB files properly.
 
 ## Usage
