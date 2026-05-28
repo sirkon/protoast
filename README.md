@@ -17,6 +17,8 @@ go get github.com/sirkon/protoast
 
 ## Usage
 
+Look at the [test](./protoast_test.go) to see the usage at the scale.
+
 ```go
 package main
 
