@@ -36,7 +36,7 @@ Most Go developers building custom tools face a dilemma: use raw text parsers wi
 ## Installation
 
 ```shell
-go get github.com/sirkon/protoast
+go get github.com/sirkon/protoast/v2
 ```
 
 ## Quick Start / Usage
