@@ -12,3 +12,7 @@
 *.out
 
 .idea
+
+# Macos
+.DS_Store
+

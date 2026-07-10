@@ -271,6 +271,20 @@ func (m *MessageField) Value() int {
 	}
 }
 
+// Optional checks if this field is defined as optional in PB.
+func (m *MessageField) Optional() bool {
+	switch p := m.proto.(type) {
+	case *proto.NormalField:
+		return p.Optional
+	case *proto.Oneof:
+		return false
+	case *proto.MapField:
+		return false
+	default:
+		panic(errors.Newf("message field came with invalid payload %T", m.proto))
+	}
+}
+
 var _ Node = new(Message)
 
 var _ Node = new(MessageField)

@@ -6,9 +6,11 @@ import (
 	"text/scanner"
 
 	"github.com/emicklei/proto"
+
 	"github.com/sirkon/protoast/v2/internal/errors"
 )
 
+// NodeIndex returns fully qualified name of a node.
 func (r *Registry) NodeIndex(node Node) string {
 	switch n := node.(type) {
 	case *File:
