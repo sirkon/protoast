@@ -1,7 +1,6 @@
 package core
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
@@ -24,15 +23,12 @@ type pathResolverProtoc struct {
 }
 
 func newPathResolverProtoc() (*pathResolverProtoc, error) {
-	var out bytes.Buffer
-	command := exec.Command("which", "protoc")
-	command.Stdout = &out
-	command.Stderr = os.Stderr
-	if err := command.Run(); err != nil {
-		return nil, errors.Wrap(err, "look for protoc executable path")
+	protocPath, err := exec.LookPath("protoc")
+	if err != nil {
+		return nil, errors.Wrap(err, "look for protoc binary")
 	}
 
-	dir, _ := filepath.Split(out.String())
+	dir, _ := filepath.Split(protocPath)
 	dir, _ = filepath.Split(strings.TrimSuffix(dir, string(filepath.Separator)))
 
 	include := filepath.Join(dir, "include")
@@ -101,6 +97,11 @@ func Resolvers() *PathResolversBuilder {
 	return &PathResolversBuilder{}
 }
 
+// WithProtoc does not execute or invoke the protoc binary. Instead, it tells the
+// resolver to find a protoc binary to locate where the "stdlib" (google/protobuf/*)
+// proto-files are stored, as they are typically strictly coupled with the binary.
+// Use `WithRoot(googleProtobufFiles)` manually if your environment stores
+// these standard files in a non-standard or separate location.
 func (b *PathResolversBuilder) WithProtoc() *PathResolversBuilder {
 	b.isProtoc = true
 	return b

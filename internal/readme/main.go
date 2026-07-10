@@ -10,14 +10,11 @@ import (
 func main() {
 	schemaRoot := os.Getenv("SCHEMA_ROOT")
 
-	// WithProtoc() does not execute the protoc binary. Instead, it locates the
-	// protoc binary path via `which protoc` to find where the "stdlib" (google/protobuf/*)
+	// WithProtoc does not execute or invoke the protoc binary. Instead, it tells the
+	// resolver to find a protoc binary to locate where the "stdlib" (google/protobuf/*)
 	// proto-files are stored, as they are typically strictly coupled with the binary.
 	// Use `WithRoot(googleProtobufFiles)` manually if your environment stores
 	// these standard files in a non-standard or separate location.
-	//
-	// Note: Because this relies strictly on `which protoc`, the WithProtoc()
-	// method will not work on Windows environments.
 	resolvers, err := protoast.Resolvers().WithProtoc().WithRoot(schemaRoot).Build()
 	if err != nil {
 		panic(fmt.Errorf("create resolvers for schema files: %w", err))
@@ -28,12 +25,12 @@ func main() {
 		panic(fmt.Errorf("create registry: %w", err))
 	}
 
-	meta, err := registry.Proto("meta/v1/status.proto")
+	metaStatus, err := registry.Proto("meta/v1/status.proto")
 	if err != nil {
 		panic(fmt.Errorf("look for status response definition file: %w", err))
 	}
 
-	responseStatusType := meta.Message(registry, "ResponseStatus")
+	responseStatusType := metaStatus.Message(registry, "ResponseStatus")
 	if responseStatusType == nil {
 		panic(fmt.Errorf("missing definition of ResponseStatus message"))
 	}
@@ -56,10 +53,17 @@ func main() {
 			panic(fmt.Errorf("service %q not found in %q file", serviceName, serviceFile))
 		}
 
+	methodLoop:
 		for method := range service.Methods(registry) {
 			isStream, responseType := method.Output(registry)
 			if isStream {
 				continue
+			}
+
+			for option := range method.Options(registry) {
+				if option.Is(registry, ".meta.v1.non_standard_method") {
+					continue methodLoop
+				}
 			}
 
 			var responseStatusDetected bool
