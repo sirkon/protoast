@@ -96,15 +96,17 @@ func main() {
 
 ## Advanced Examples
 
-### An example of schema linting
+### Advanced Example: Enforcing API Contracts (Governance Linter)
 
-Let we have our schema, where we want:
+In microservice architectures, you often want to enforce global standards — for instance, ensuring that every non-streaming RPC method returns a structure containing a unified `ResponseStatus` message for error handling and metadata.
+
+The following example reads service definitions and validates that:
 
 1. Every unary RPC response of certain services contains a status field.
 2. This field is strictly typed as `ResponseStatus`.
 3. The field is explicitly named `response_status` (enforcing naming consistency).
-4. No other field is allowed to use that `ResponseType` type.
-5. We have an option
+4. No other field is allowed to use that `ResponseStatus` type.
+5. It respects a custom method option defined in `meta.v1` package:
    ```protobuf
    package meta.v1;
    
@@ -112,7 +114,7 @@ Let we have our schema, where we want:
        google.protobuf.Any non_standard_method = 12345;
    }
    ```
-   which commands not to check rules above for methods with this option.
+   If a method is annotated with `(meta.v1.non_standard_method) = {}`, the linter will bypass all the rules above for that specific method.
 
 ```go
 package main
