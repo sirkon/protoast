@@ -172,17 +172,14 @@ func main() {
             panic(fmt.Errorf("service %q not found in %q file", serviceName, serviceFile))
         }
 
-    methodLoop:
         for method := range service.Methods(registry) {
             isStream, responseType := method.Output(registry)
             if isStream {
                 continue
             }
 
-            for option := range method.Options(registry) {
-                if option.Is(registry, ".meta.v1.non_standard_method") {
-                    continue methodLoop
-                }
+            if registry.OptionNamed(method, ".meta.v1.non_standard_method") != nil {
+                continue
             }
 
             var responseStatusDetected bool
